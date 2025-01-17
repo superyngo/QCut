@@ -105,8 +105,11 @@ async def upload_handler(task: UploaderTask) -> int:
     mkv_files: list[Path] = task.get("mkv_files", [Path()])
     do_upload: int = await _upload(tab, mkv_files)
     await tab.wait(5)
+    if do_upload != 0:
+        logger.info("upload failed with do_upload")
+        return do_upload
     do_delete: int = _delete_mkv_files(mkv_files) if task.get("delete_after") else 0
-    return do_upload + do_delete
+    return do_delete
 
 
 async def main():

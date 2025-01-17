@@ -4,9 +4,7 @@ from pathlib import Path
 
 
 def main() -> None:
-    target_path: Path = Path(
-        r"D:\Users\user\OneDrive - Chunghwa Telecom Co., Ltd\文件\Projects\Python\sample\tt"
-    )
+    target_path: Path = Path(r"D:\smb\xiaomi\xiaomi_camera_videos\94f827b4b94e")
     merge_task_info: mideo_converter.types.MideoMergerTask = {
         "folder_path": target_path,
         "start_hour": 6,
