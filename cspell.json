@@ -1,0 +1,33 @@
+{
+    "version": "0.2",
+    "ignorePaths": [],
+    "dictionaryDefinitions": [],
+    "dictionaries": [],
+    "words": [
+        "acodec",
+        "appendleft",
+        "aselect",
+        "asetpts",
+        "boxlayout",
+        "datestamp",
+        "ffprobe",
+        "filechooser",
+        "funcs",
+        "jumpcut",
+        "kivy",
+        "mideo",
+        "mightbeuseful",
+        "Multiton",
+        "notime",
+        "otherkwargs",
+        "othertags",
+        "Seedupkwargs",
+        "setpts",
+        "vcodec",
+        "viewmodels",
+        "vsync",
+        "zendriver"
+    ],
+    "ignoreWords": [],
+    "import": []
+}
