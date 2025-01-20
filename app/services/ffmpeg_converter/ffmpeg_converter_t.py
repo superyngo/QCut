@@ -1,3 +1,4 @@
+# import ffmpeg
 import ffmpeg
 from typing import Sequence
 from pathlib import Path
@@ -10,6 +11,7 @@ import tempfile
 import time
 import os
 import concurrent.futures
+import json
 from ...utils import logger
 from .types import EncodeKwargs
 
@@ -44,17 +46,30 @@ def _gen_filter(
 def probe_duration(file_path: Path) -> float:
     logger.info(f"Probing {file_path.name} duration")
 
-    probe = ffmpeg.probe(str(file_path))
-    s = probe["format"]["duration"]
-    logger.info(f"{file_path.name} duration probed: {s}")
+    probe_duration = (
+        os.popen(
+            f'ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "{file_path}"'
+        )
+        .read()
+        .strip()
+    )
+    logger.info(f"{file_path.name} duration probed: {probe_duration}")
 
-    return float(s)
+    return float(probe_duration)
 
 
 def probe_encoding_info(file_path: Path) -> EncodeKwargs:
     logger.info(f"Probing {file_path.name} encoding info")
     # Probe the video file to get metadata
-    probe = ffmpeg.probe(str(file_path))
+    probe = (
+        os.popen(
+            f'ffprobe -v error -print_format json -show_format -show_streams "{file_path}"'
+        )
+        .read()
+        .encode("utf-8")
+        .decode("utf-8")
+    )
+    probe = json.loads(probe)
 
     # Initialize the dictionary with default values
     encoding_info: EncodeKwargs = {}
@@ -92,11 +107,10 @@ def detect_non_silence(
 ) -> tuple[Sequence[float], float, float]:
     logger.info(f"Detecting silences in {file_path.name} with {dB = }")
 
-    output = (
-        ffmpeg.input(str(file_path))
-        .output("null", af=f"silencedetect=n={dB}dB:d={sl_duration}", f="null")
-        .run(capture_stdout=True, capture_stderr=True)
-    )[1].decode("utf-8")
+    command = (
+        f'ffmpeg -i "{file_path}" -af silencedetect=n={dB}dB:d={sl_duration} -f null -'
+    )
+    output = os.popen(command + " 2>&1").read()
 
     # Total duration
     total_duration_pattern = r"Duration: (.+?),"
@@ -130,12 +144,15 @@ def detect_non_silence(
 
 def _get_keyframe_time(file_path: Path) -> list[float]:
     logger.info(f"Get keyframe timeing for {file_path.name}")
-    probe = ffmpeg.probe(
-        str(file_path),
-        loglevel="error",
-        select_streams="v:0",
-        show_entries="packet=pts_time,flags",
+    probe = (
+        os.popen(
+            f'ffprobe -v error -select_streams v:0 -show_entries packet=pts_time,flags -of json "{file_path}"'
+        )
+        .read()
+        .encode("utf-8")
+        .decode("utf-8")
     )
+    probe = json.loads(probe)
     keyframe_pts: list[float] = [
         float(packet["pts_time"])
         for packet in probe["packets"]
@@ -183,42 +200,28 @@ def speedup(
     )
 
     SPEEDUP_METHOD_THRSHOLD: int = 4
-    output_kwargs: dict = (
-        (
-            {  # sepped up with select
-                "vf": f"select='not(mod(n,{multiple}))',setpts=N/FRAME_RATE/TB",
-                "af": f"aselect='not(mod(n,{multiple}))',asetpts=N/SR/TB",
-            }
-            if multiple > SPEEDUP_METHOD_THRSHOLD  # Decide speed up method
-            else {  # speed up with setpts and atempo
-                "vf": f"setpts={1/multiple}*PTS",
-                "af": f"atempo={multiple}",
-            }
-        )
-        | {  # common tags
-            "map": 0,
-            "shortest": None,
-            "fps_mode": "vfr",
-        }
-        | othertags
-    )
+    if multiple > SPEEDUP_METHOD_THRSHOLD:
+        vf = f"select='not(mod(n,{multiple}))',setpts=N/FRAME_RATE/TB"
+        af = f"aselect='not(mod(n,{multiple}))',asetpts=N/SR/TB"
+    else:
+        vf = f"setpts={1/multiple}*PTS"
+        af = f"atempo={multiple}"
+
+    output_kwargs = f'-vf "{vf}" -af "{af}" -map 0 -shortest -fps_mode vfr'
+    if othertags:
+        for key, value in othertags.items():
+            output_kwargs += f" -{key} {value}"
 
     logger.info(
         f"{methods.SPEEDUP} {input_file} to {output_file} with speed {multiple} and {output_kwargs = }"
     )
-    try:  # Speedup the video using ffmpeg-python
-        do = (
-            ffmpeg.input(input_file)
-            .output(
-                str(temp_output_file),
-                **output_kwargs,
-            )
-            .run(),
-        )
+    try:
+        command = f'ffmpeg -i "{input_file}" {output_kwargs} "{temp_output_file}"'
+        os.system(command)
         temp_output_file.replace(output_file)
-    except ffmpeg.Error as e:
+    except Exception as e:
         logger.error(
-            f"Failed to {methods.SPEEDUP} videos for {input_file}. Error: {e.stderr}"
+            f"Failed to {methods.SPEEDUP} videos for {input_file}. Error: {str(e)}"
         )
         raise e
     return 0
@@ -227,48 +230,57 @@ def speedup(
 def jumpcut(
     input_file: Path,
     output_file: Path | None,
-    interval: float | int,
-    lasting: float | int,
-    interval_multiple: float | int = 0,  # 0 means unwated cut out
-    lasting_multiple: float | int = 1,  # 0 means unwated cut out
+    interval: float,
+    lasting: float,
+    interval_multiple: int = 0,  # 0 means unwated cut out
+    lasting_multiple: int = 1,  # 0 means unwated cut out
     **othertags,
 ) -> int:
-    if interval <= 0 or lasting <= 0:
+    if any((interval <= 0, lasting <= 0)):
         logger.error(f"Both 'interval' and 'lasting' must be greater than 0.")
         return 1
+
+    if any((interval_multiple < 0, lasting_multiple < 0)):
+        logger.error(
+            f"Both 'interval_multiple' and 'lasting_multiple' must be greater or equal to 0."
+        )
+        return 2
+
     if output_file is None:
         output_file = input_file.parent / (input_file.name + "_" + input_file.suffix)
     temp_output_file: Path = output_file.parent / (
         output_file.stem + "_processing" + output_file.suffix
     )
-    interval_multiple_expr: str | float = (
-        f"not(mod(n,{interval_multiple}))"
-        if interval_multiple != 0
-        else interval_multiple
+
+    interval_multiple_expr: str = (
+        str(interval_multiple)
+        if interval_multiple == 0
+        else f"not(mod(n,{interval_multiple}))"
     )
-    lasting_multiple_expr: str | float = (
-        f"not(mod(n,{lasting_multiple}))" if lasting_multiple != 0 else lasting_multiple
+    lasting_multiple_expr: str = (
+        str(lasting_multiple)
+        if lasting_multiple == 0
+        else f"not(mod(n,{lasting_multiple}))"
     )
     frame_select_expr: str = (
         f"if(lte(mod(t, {interval + lasting}),{interval}), {interval_multiple_expr}, {lasting_multiple_expr})"
     )
-    output_kwargs: dict = {
-        "vf": f"select='{frame_select_expr}',setpts=N/FRAME_RATE/TB",
-        "af": f"aselect='{frame_select_expr}',asetpts=N/SR/TB",
-        "map": 0,
-        "shortest": None,
-        "fps_mode": "vfr",
-    } | othertags
+    logger.info(f"{frame_select_expr = }")
+    output_kwargs = f"-vf \"select='{frame_select_expr}',setpts=N/FRAME_RATE/TB\" -af \"aselect='{frame_select_expr}',asetpts=N/SR/TB\" -map 0 -shortest -fps_mode vfr"
+    if othertags:
+        for key, value in othertags.items():
+            output_kwargs += f" -{key} {value}"
+
     logger.info(
         f"{methods.JUMPCUT} {input_file} to {output_file} with {output_kwargs = }"
     )
     try:
-        # Speedup the video using ffmpeg-python
-        (ffmpeg.input(input_file).output(str(temp_output_file), **output_kwargs).run())
+        command = f'ffmpeg -i "{input_file}" {output_kwargs} "{temp_output_file}"'
+        os.system(command)
         temp_output_file.replace(output_file)
-    except ffmpeg.Error as e:
+    except Exception as e:
         logger.error(
-            f"Failed to {methods.JUMPCUT} videos for {input_file}. Error: {e.stderr}"
+            f"Failed to {methods.JUMPCUT} videos for {input_file}. Error: {str(e)}"
         )
         return 2
     return 0

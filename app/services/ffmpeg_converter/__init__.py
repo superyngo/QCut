@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from ffmpeg import Error as ffmpeg_Error
-from .ffmpeg_converter import (
+from .ffmpeg_converter_t import (
     speedup,
     jumpcut,
     convert,

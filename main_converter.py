@@ -2,6 +2,16 @@ from app import config
 from app import mideo_converter
 from pathlib import Path
 
+# from app.services import ffmpeg_converter
+
+# file = Path(
+#     r"D:\Users\user\OneDrive - Chunghwa Telecom Co., Ltd\文件\Projects\Python\sample\cut_sl_speedup - 複製\input.mkv"
+# )
+# output = Path(
+#     r"D:\Users\user\OneDrive - Chunghwa Telecom Co., Ltd\文件\Projects\Python\sample\cut_sl_speedup - 複製\input_processed.mkv"
+# )
+# ffmpeg_converter.jumpcut(file, output, 2, 1, 1, 3)
+
 
 def main() -> None:
     target_path: Path = Path(r"D:\smb\xiaomi\xiaomi_camera_videos\94f827b4b94e")
