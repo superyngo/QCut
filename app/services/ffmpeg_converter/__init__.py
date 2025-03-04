@@ -25,7 +25,7 @@ current_file_path = Path(__file__).resolve()
 # Set the ./bin path to the PATH environment variable
 bin_path = current_file_path.parent / "bin"
 os.environ["PATH"] = a = str(bin_path) + os.pathsep + os.environ["PATH"]
-
+print(f"{a =}")
 
 __all__: list[str] = [
     "speedup",

@@ -1,5 +1,10 @@
 {
     "cSpell.words": [
         "PROGRAMDATA"
-    ]
+    ],
+    "editor.defaultFormatter": null,
+    "black-formatter.importStrategy": "fromEnvironment",
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    }
 }

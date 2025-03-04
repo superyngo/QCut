@@ -11,29 +11,31 @@ name = "abc"
 browser_config: MyDriverConfig = {
     "user_data_dir": Path(config.AppPaths.APP_DATA) / name,
     "browser_executable_path": Path(
-        r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"
+        r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
     ),
 }
 
 task1: tasks.UploaderTask = {
-    "name": "xiaomi",
-    "local_album_path": Path(r"D:\smb\xiaomi\xiaomi_camera_videos\94f827b4b94e"),
-    "GPhoto_url": "https://photos.google.com/share/AF1QipN5ErAyjjFPCxWgw--uYgbrvJWZu1U39-3iyeChyQQv0PDxU59NnyNP_k4bZNMrvw?key=czBUY1Z4UWRjdDFMWXFYdS1NZnd4SXIyREgzTElR",
+    "name": "Mom",
+    "local_album_path": Path(r"F:\NoCloud\c"),
+    "GPhoto_url": "https://photos.google.com/share/AF1QipOjEaSgW_YJxNembwfgYQbouBBHSUyQxFGj2Oq6dpw_EjkWeCBRkSRwczoP7WwoUw",
     "browser_config": browser_config,
     "delete_after": True,
 }
 task2: tasks.UploaderTask = {
-    "name": "xiaomi_speedup",
+    "name": "Mom_speedup",
     "local_album_path": Path(r"D:\smb\xiaomi\xiaomi_camera_videos\94f827b4b94e")
     / "cut_sl_speedup",
-    "GPhoto_url": "https://photos.google.com/share/AF1QipMk6l7y_pzXMh1gTWH5G2lD_U30_Br2E-p2sKDw71YBY97zMh6krVC9cDsT-acFjQ",
+    "GPhoto_url": 
+        "https://photos.google.com/share/AF1QipNG24NndfSGD9rsiHkz7OBvA5amkVOxcadMFI52a0HZR3m9wlUwTgOn5b2h7YBA2Q"
+    ,
     "browser_config": browser_config,
     "delete_after": True,
 }
 
 upload_assignments: tasks.UploaderInfo = {
     "filename": Path(),
-    "assignments": [task1, task2],
+    "assignments": [task1,task2],
 }
 
 

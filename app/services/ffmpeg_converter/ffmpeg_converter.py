@@ -12,6 +12,7 @@ import os
 import concurrent.futures
 from ...utils import logger
 from .types import EncodeKwargs
+import subprocess
 
 
 class methods(StrEnum):
@@ -87,16 +88,34 @@ def probe_encoding_info(file_path: Path) -> EncodeKwargs:
     return cleaned_None
 
 
+def _dic_to_ffmpeg_args(kwargs: dict | None = None) -> str:
+    if kwargs is None:
+        return ""
+    return " ".join((f'-{k} "{v}"') if v != "" else f"-{k}" for k, v in kwargs.items())
+
+
 def detect_non_silence(
     file_path: Path, dB: int = -35, sl_duration: float = 1
 ) -> tuple[Sequence[float], float, float]:
     logger.info(f"Detecting silences in {file_path.name} with {dB = }")
 
-    output = (
-        ffmpeg.input(str(file_path))
-        .output("null", af=f"silencedetect=n={dB}dB:d={sl_duration}", f="null")
-        .run(capture_stdout=True, capture_stderr=True)
-    )[1].decode("utf-8")
+    output_kwargs: dict = {
+        "hwaccel": "auto",
+        "i": str(file_path),
+        "af": f"silencedetect=n={dB}dB:d={sl_duration}",
+        "c:v": "copy",
+        "f": "null",
+    } | {"": ""}
+
+    logger.info(
+        f"Detecting silences of {file_path.name} by {dB = } and {output_kwargs = }"
+    )
+
+    command = "ffmpeg " + _dic_to_ffmpeg_args(output_kwargs)
+    result = subprocess.run(
+        command, capture_output=True, text=True, check=True, encoding="utf-8"
+    )
+    output = result.stdout + result.stderr
 
     # Total duration
     total_duration_pattern = r"Duration: (.+?),"
