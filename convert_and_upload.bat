@@ -1,6 +1,6 @@
 set PYTHONUTF8=1
 
-python main_converter.py
+@REM python main_converter.py
 
 @REM @echo off 
 @REM Change to the directory where the other batch file is located 
@@ -10,4 +10,6 @@ python main_converter.py
 @REM REM Change back to the original directory if needed 
 @REM cd /d "D:\mideoToGPhoto"
 
-python main_upload.py
+@REM python main_upload.py
+
+@REM python app.py

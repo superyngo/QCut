@@ -5,6 +5,6 @@
     "editor.defaultFormatter": null,
     "black-formatter.importStrategy": "fromEnvironment",
     "[python]": {
-        "editor.defaultFormatter": "ms-python.black-formatter"
+        "editor.defaultFormatter": "charliermarsh.ruff"
     }
 }
