@@ -1,11 +1,14 @@
-from enum import ReprEnum
+from enum import ReprEnum, EnumMeta
 from pathlib import Path
-from typing import TypedDict, NotRequired
 
 __all__: list[str] = ["PathEnum"]
 
 
-class PathEnum(Path, ReprEnum):
+class PathEnumMeta(EnumMeta, type(Path)):
+    pass
+
+
+class PathEnum(Path, ReprEnum, metaclass=PathEnumMeta):
     """
     Enum where members are also (and must be) Path objects
     """

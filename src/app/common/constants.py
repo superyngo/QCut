@@ -1,15 +1,14 @@
 import sys
 import os
 from pathlib import Path
-from typing import LiteralString
 from enum import StrEnum, auto
 from app.common.mytypes import PathEnum
 
 
 class DEV_INFO(StrEnum):
-    APP_NAME = "Trimshh"
+    APP_NAME = "QCut"
     AUTHOR = "Wenyang Tai"
-    COMPANY = "WENAN"
+    COMPANY = "WENANKO"
     APP_VERSION = "0.1.0"
     ADDRESS = "6F.-1, No. 442, Changchun Rd., Songshan Dist., Taipei City 105, Taiwan (R.O.C.)"
     EMAIL = "superyngo@gmail.com"

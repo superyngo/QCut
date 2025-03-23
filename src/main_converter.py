@@ -1,35 +1,24 @@
-from app import config
 from app import mideo_converter
 from pathlib import Path
 
-# from app.services import ffmpeg_converter
-
-# file = Path(
-#     r"D:\Users\user\OneDrive - Chunghwa Telecom Co., Ltd\文件\Projects\Python\sample\cut_sl_speedup - 複製\input.mkv"
-# )
-# output = Path(
-#     r"D:\Users\user\OneDrive - Chunghwa Telecom Co., Ltd\文件\Projects\Python\sample\cut_sl_speedup - 複製\input_processed.mkv"
-# )
-# ffmpeg_converter.jumpcut(file, output, 2, 1, 1, 3)
-
 
 def main() -> None:
-    target_path: Path = Path(r"F:\NoCloud\c")
-    merge_task_info: mideo_converter.types.MideoMergerTask = {
-        "folder_path": target_path,
-        "start_hour": 6,
-        "delete_after": True,
-        "valid_extensions": {mideo_converter.types.VideoSuffix.MP4},
-    }
-    mideo_converter.merger_handler(**merge_task_info)
+    target_path: Path = Path(r"K:\data\94f827b4b94e")
+    mideo_converter.MergeByDate(
+        input_folder_path=target_path,
+        valid_extensions={mideo_converter.VideoSuffix.MP4},
+        walkthrough=True,
+        delete_after=True,
+        start_hour=6,
+    ).merge()
 
-    cut_sl_speedup_task_info: mideo_converter.types.CutSlSpeedupTask = {
-        "folder_path": target_path,
-        "multiple": 0,
-        "valid_extensions": {mideo_converter.types.VideoSuffix.MKV},
-        "cut_sl_config": {"dB": -18},
-    }
-    mideo_converter.cut_sl_speedup_handler(**cut_sl_speedup_task_info)
+    mideo_converter.BatchVideoRender(
+        input_folder_path=target_path,
+        output_folder_path=target_path / "cut_sl",
+        valid_extensions={mideo_converter.VideoSuffix.MKV},
+        walkthrough=False,
+        delete_after=False,
+    ).apply(task=mideo_converter.ffmpeg_toolkit.PARTIAL_TASKS.cut_silence(dB=-15))
 
 
 if __name__ == "__main__":

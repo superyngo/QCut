@@ -2,9 +2,9 @@ import asyncio
 from pathlib import Path
 import os
 from nodriver import Tab
-from ...utils import logger
-from ...services import my_driver
-from ...models.tasks import UploaderTask
+from app.common import logger
+from app.services import my_driver
+from .types import UploaderTask
 
 
 __all__: list[str] = ["upload_handler"]
@@ -29,7 +29,6 @@ __all__: list[str] = ["upload_handler"]
 
 
 async def _upload(tab: Tab, mkv_files: list[Path]) -> int:
-
     # Check all mkv files valid
     for file in mkv_files:
         if file.suffix != ".mkv":

@@ -14,7 +14,6 @@ response_codes: WeakValueDictionary[str, int] = WeakValueDictionary()
 
 
 async def get_response(tab: Tab, url: str) -> int:
-
     await tab.send(network.enable())
 
     global response_codes
