@@ -1,10 +1,19 @@
 import os
 import asyncio
 from pathlib import Path
-from app import config, tasks, GPhoto_uploader, browser_instances, logger
+from app import GPhoto_uploader, browser_instances, logger
 from app.services.my_driver.types import MyDriverConfig
-import pdb
+from app.services.my_driver import MyBrowser
 
+os.environ["HTTPS_PROXY"] = ""
+os.environ["HTTP_PROXY"] = ""
+
+b = MyBrowser(
+    browser_executable_path=Path(
+        r"C:\Program Files (x86)\Microsoft\EdgeCore\134.0.3124.83\msedge.exe"
+    )
+)
+await b.browser
 
 # sample
 name = "abc"
@@ -26,16 +35,14 @@ task2: tasks.UploaderTask = {
     "name": "Mom_speedup",
     "local_album_path": Path(r"D:\smb\xiaomi\xiaomi_camera_videos\94f827b4b94e")
     / "cut_sl_speedup",
-    "GPhoto_url": 
-        "https://photos.google.com/share/AF1QipNG24NndfSGD9rsiHkz7OBvA5amkVOxcadMFI52a0HZR3m9wlUwTgOn5b2h7YBA2Q"
-    ,
+    "GPhoto_url": "https://photos.google.com/share/AF1QipNG24NndfSGD9rsiHkz7OBvA5amkVOxcadMFI52a0HZR3m9wlUwTgOn5b2h7YBA2Q",
     "browser_config": browser_config,
     "delete_after": True,
 }
 
 upload_assignments: tasks.UploaderInfo = {
     "filename": Path(),
-    "assignments": [task1,task2],
+    "assignments": [task1, task2],
 }
 
 
@@ -57,7 +64,7 @@ async def main():
             logger.info(f"No mkv files in {folder}, pass")
             return
 
-        logger.info(f"Start uploading {mkv_files} to {task["GPhoto_url"]}")
+        logger.info(f"Start uploading {mkv_files} to {task['GPhoto_url']}")
         await GPhoto_uploader.upload_handler(task)
 
     # Clear tabs

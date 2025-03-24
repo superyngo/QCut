@@ -1,18 +1,28 @@
 import os
-from datetime import datetime, timedelta, date
-from pathlib import Path
 import re
+from datetime import datetime, timedelta, date
+from enum import Enum
+from pathlib import Path
 from pydantic import BaseModel, computed_field, Field
 from app.common import logger
 from app.services import ffmpeg_toolkit
 from typing import Callable
 
 VideoSuffix = ffmpeg_toolkit.types.VideoSuffix
+FunctionEnum = ffmpeg_toolkit.types.FunctionEnum
+
+
+class RE_PATTERN(Enum):
+    EPOCHSTAMP = re.compile(r"\D?(\d{10})\D?")
+    DATETIMESTAMP = re.compile(r"\D?(\d{14})\D?")  # YYYYMMDDHHMMSS
+
+
+type ValidExtensions = set[VideoSuffix] | set[str] | None
 
 
 def _list_video_files(
     root_path: str | Path,
-    valid_extensions: set[VideoSuffix] | None = None,
+    valid_extensions: ValidExtensions,
     walkthrough: bool = True,
 ) -> list[Path]:
     if valid_extensions is None:
@@ -39,70 +49,61 @@ def _list_video_files(
     return video_files
 
 
-def _extract_epoch(filename: Path | str) -> int | None:
-    """Function to extract the first valid 10-digit epoch time from filename using regex"""
+def _extract_pattern(text: str, pattern: re.Pattern) -> int | None:
+    """Function to extract text using regex"""
 
     try:
-        # Regex pattern to find a sequence of exactly 10 digits
-        matches = re.findall(r"\D?(\d{10})\D?", str(Path(filename).stem))
+        logger.info(f"Finding matches in {text} with {pattern}")
+        matches = pattern.findall(text)
         if matches:
             return int(matches[0])
         else:
-            logger.error(f"No valid 10-digit epoch time found in {filename}")
+            logger.info(f"No pattern found in {text} with {pattern}")
             return None
     except ValueError as e:
-        logger.error(f"Failed to extract epoch from {filename}: {str(e)}")
+        logger.error(f"Failed to extract pattern from {text}: {str(e)}")
         return None
 
 
-def _extract_first_datestamp_epoch(filename: Path | str) -> int | None:
-    """Extract the epoch time from the first datestamp in the filename."""
-    try:
-        # Regex pattern to find a sequence of exactly 14 digits (YYYYMMDDHHMMSS)
-        matches = re.findall(r"\D?(\d{14})\D?", str(Path(filename).stem))
-        if matches:
-            return _convert_datestamp_to_epoch(matches[0])
-        else:
-            logger.error(f"No valid 14-digit datestamp found in {filename}")
-            return None
-    except ValueError as e:
-        logger.error(f"Failed to extract datestamp from {filename}: {str(e)}")
-        return None
-
-
-def _convert_datestamp_to_epoch(datestamp: str) -> int | None:
+def _convert_datestamp_to_epoch(datestamp: str) -> int:
     """Convert a datestamp in the format YYYYMMDDHHMMSS to epoch time."""
     try:
         dt = datetime.strptime(datestamp, "%Y%m%d%H%M%S")
         return int(dt.timestamp())
     except ValueError as e:
         logger.error(f"Failed to convert datestamp {datestamp} to epoch: {str(e)}")
-        return None
+        raise (e)
 
 
 type GroupedVideos = dict[date, dict[int, Path]]
 
 
-def _group_files_by_date(video_files: list[Path], start_hour: int = 0) -> GroupedVideos:
+def _group_files_by_date(
+    datetime_pattern: re.Pattern, video_files: list[Path], start_hour: int = 0
+) -> GroupedVideos:
     grouped_files: GroupedVideos = {}
 
-    for video_path in video_files:
-        filename: str = os.path.basename(video_path)
-        epoch_time: int | None = _extract_epoch(filename)
-        date_key: str | date
+    for video in video_files:
+        epoch_time: int | None = _extract_pattern(str(video.stem), datetime_pattern)
+
+        # Check if epoch_time is a valid epoch timestamp or a datestamp
+        if len(str(epoch_time)) == 14:
+            epoch_time = _convert_datestamp_to_epoch(str(epoch_time))
 
         if epoch_time is None:
-            logger.warning(f"skip {filename} with no time.")
+            logger.warning(f"skip {video} with no time.")
             continue
+
         else:
             file_datetime: datetime = datetime.fromtimestamp(epoch_time)
             if file_datetime.hour < start_hour:
                 file_datetime -= timedelta(days=1)
-            date_key = file_datetime.date()
+            date_key: date = file_datetime.date()
 
         if date_key not in grouped_files:
             grouped_files[date_key] = {}
-        grouped_files[date_key].update({epoch_time: video_path})
+
+        grouped_files[date_key].update({epoch_time: video})
 
     return grouped_files
 
@@ -168,6 +169,28 @@ def _merge_videos(
     return 0
 
 
+class PostHooks(FunctionEnum):
+    @staticmethod
+    def set_epoch_timestamp(datetime_pattern: re.Pattern):
+        def _set_epoch_timestamp(_video: Path, output_file: Path):
+            """Set the epoch timestamp of the video file."""
+            epoch_time: int | None = _extract_pattern(
+                str(output_file.stem), datetime_pattern
+            )
+
+            # Check if epoch_time is a valid epoch timestamp or a datestamp
+            if len(str(epoch_time)) == 14:
+                epoch_time = _convert_datestamp_to_epoch(str(epoch_time))
+
+            if not epoch_time:
+                logger.warning(f"skip {output_file} with no time to judge.")
+                return
+
+            os.utime(output_file, (epoch_time, epoch_time))
+
+        return _set_epoch_timestamp
+
+
 class BatchVideoRender(BaseModel):
     """Video merger configuration and processor.
 
@@ -176,18 +199,22 @@ class BatchVideoRender(BaseModel):
 
     input_folder_path: Path
     output_folder_path: Path | None = None
-    valid_extensions: set[VideoSuffix] | None = None
+    valid_extensions: ValidExtensions = None
     walkthrough: bool = False
-    delete_after: bool = False
     input_kwargs: ffmpeg_toolkit.types.FFKwargs = Field(default_factory=dict)
     output_kwargs: ffmpeg_toolkit.types.FFKwargs = Field(default_factory=dict)
+    post_hook: Callable | None = None
 
     def model_post_init(self, *args, **kwargs):
         if self.output_folder_path is None:
             self.output_folder_path = self.input_folder_path
+        if self.output_folder_path.suffix == "" and self.output_folder_path.is_file():
+            raise ValueError("Output folder path is a file.")
+        self.output_folder_path.mkdir(parents=True, exist_ok=True)
         if self.valid_extensions is None:
             self.valid_extensions = set(VideoSuffix)
 
+    @property
     @computed_field
     def video_files(self) -> list[Path]:
         """List all video files in the specified folder with valid extensions."""
@@ -202,20 +229,13 @@ class BatchVideoRender(BaseModel):
     def apply(self, task: Callable):
         """Batch Render the video files."""
         for video in self.video_files:  # type: ignore
-            task(
+            result_or_output = task(
                 input_file=video,
                 output_file=self.output_folder_path,
             )
-        # Clean up original video files and directories
-        if self.delete_after:
-            logger.info("Deleting source videos.")
-            dirs_to_delete: set[Path] = set()
-            for video in self.video_files:  # type: ignore
-                os.remove(video)
-                dirs_to_delete.add(video.parent)
-            for directory in dirs_to_delete:
-                if list(directory.iterdir()) == []:
-                    os.rmdir(directory)
+            if self.post_hook:
+                logger.info("Post hooking...")
+                self.post_hook(video, result_or_output)
 
 
 class MergeByDate(BatchVideoRender):
@@ -224,13 +244,21 @@ class MergeByDate(BatchVideoRender):
     start_hour: int = Field(
         default=6, ge=0, le=23, description="Hour to use as day boundary (0-23)"
     )
+    timestamp_pattern: re.Pattern
+    delete_after: bool = False
 
     @computed_field
+    @property
     def videos_grouped_by_date(self) -> GroupedVideos:
         """Group video files by date based on the start hour."""
-        if len(self.video_files) == 0:  # type: ignore
+        if len(self.video_files) == 0:
+            logger.info("No video files to be merged by date")
             return {}
-        return _group_files_by_date(self.video_files, self.start_hour)  # type: ignore
+        return _group_files_by_date(
+            self.timestamp_pattern,
+            self.video_files,
+            self.start_hour,
+        )
 
     def merge(self) -> int:
         """Process the video merging operation.
@@ -246,8 +274,8 @@ class MergeByDate(BatchVideoRender):
 
         try:
             do: int = _merge_videos(
-                self.videos_grouped_by_date,  # type: ignore
-                self.input_folder_path,
+                self.videos_grouped_by_date,
+                self.output_folder_path or self.input_folder_path,
                 self.output_kwargs,
             )
 

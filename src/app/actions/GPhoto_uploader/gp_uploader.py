@@ -5,27 +5,9 @@ from nodriver import Tab
 from app.common import logger
 from app.services import my_driver
 from .types import UploaderTask
-
+from pydantic import BaseModel, computed_field, Field
 
 __all__: list[str] = ["upload_handler"]
-
-# # sample
-# name = "abc"
-# browser_config: MyDriverConfig = {
-#     "user_data_dir": Path(config.AppPaths.APP_DATA) / name,
-#     "browser_executable_path": Path(
-#         r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
-#     ),
-# }
-
-# task: UploaderTask = {
-#     "name": name,
-#     "local_album_path": Path(
-#         r"D:\Users\user\OneDrive - Chunghwa Telecom Co., Ltd\文件\Projects\Python\sample\cut_sl_speedup"
-#     ),
-#     "GPhoto_url": "https://photos.google.com/u/2/album/AF1QipPgIsi5cicSG2EPtPq_fD1mDUtvkTjdr4d16aGe",
-#     "browser_config": browser_config,
-# }
 
 
 async def _upload(tab: Tab, mkv_files: list[Path]) -> int:

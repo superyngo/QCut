@@ -1,13 +1,19 @@
+import time
 import nodriver as nd
+from functools import cached_property
 from nodriver import Tab, Browser
 from nodriver.cdp import network
 from pathlib import Path
-import time
+from pydantic import BaseModel, computed_field
 from weakref import WeakValueDictionary
 from ...utils import composer
 from .types import MyDriverConfig
 
 __all__: list[str] = ["init_my_driver", "browser_instances"]
+
+
+# Multiton state
+browser_instances: WeakValueDictionary[Path | None, Browser] = WeakValueDictionary()
 
 # Create a WeakValueDictionary
 response_codes: WeakValueDictionary[str, int] = WeakValueDictionary()
@@ -35,8 +41,49 @@ async def get_response(tab: Tab, url: str) -> int:
     return response_codes[url]
 
 
-# Multiton state
-browser_instances: WeakValueDictionary[Path, Browser] = WeakValueDictionary()
+class MyBrowser(BaseModel):
+    user_data_dir: Path | None = None
+    browser_executable_path: Path | None = None
+
+    class Config:
+        arbitrary_types_allowed = True
+        frozen = True
+
+    @computed_field
+    @cached_property
+    async def browser(self) -> Browser:
+        """init a driver
+
+        Args:
+            browser_config (MyDriverConfig | None, optional): config for driver/browser. Defaults to None.
+
+        Returns:
+            uc.Browser: browser
+        """
+        global browser_instances
+        browser_id: Path | None = self.user_data_dir
+
+        if (
+            browser_id in browser_instances
+            and not browser_instances[browser_id].stopped
+        ):
+            browser: Browser = browser_instances[browser_id]
+        else:
+            browser: Browser = await nd.start(
+                user_data_dir=self.user_data_dir,
+                browser_executable_path=self.browser_executable_path,
+            )
+
+        browser_instances[browser_id] = browser
+
+        return browser
+
+    @computed_field
+    @cached_property
+    async def tab(self) -> Tab:
+        tab: Tab = await self.browser.get("about:blank")
+        composer.compose(tab, {"get_response": get_response})
+        return tab
 
 
 async def init_my_driver(browser_config: MyDriverConfig | None = None) -> Tab:
