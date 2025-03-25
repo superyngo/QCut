@@ -13,8 +13,8 @@ FunctionEnum = ffmpeg_toolkit.types.FunctionEnum
 
 
 class RE_PATTERN(Enum):
-    EPOCHSTAMP = re.compile(r"\D?(\d{10})\D?")
-    DATETIMESTAMP = re.compile(r"\D?(\d{14})\D?")  # YYYYMMDDHHMMSS
+    EPOCHSTAMP = re.compile(r"(?<!\d)\d{10}(?!\d)")
+    DATETIMESTAMP = re.compile(r"(?<!\d)\d{14}(?!\d)")  # YYYYMMDDHHMMSS
 
 
 type ValidExtensions = set[VideoSuffix] | set[str] | None
@@ -53,12 +53,12 @@ def _extract_pattern(text: str, pattern: re.Pattern) -> int | None:
     """Function to extract text using regex"""
 
     try:
-        logger.info(f"Finding matches in {text} with {pattern}")
         matches = pattern.findall(text)
         if matches:
+            logger.info(f"Found matches {matches[0]} in {text} with {pattern}")
             return int(matches[0])
         else:
-            logger.info(f"No pattern found in {text} with {pattern}")
+            logger.warning(f"No mathces found in {text} with {pattern}")
             return None
     except ValueError as e:
         logger.error(f"Failed to extract pattern from {text}: {str(e)}")
@@ -113,16 +113,6 @@ def _merge_videos(
     save_path: Path,
     output_kwargs: ffmpeg_toolkit.types.FFKwargs,
 ) -> int:
-    """_summary_
-
-    Args:
-        video_dict (GroupedVideos): _description_
-        save_path (Path): _description_
-        delete_after (bool): _description_
-
-    Returns:
-        int: _description_
-    """
     today: date = datetime.today().date()
 
     for date_key, videos in video_dict.items():
@@ -203,6 +193,7 @@ class BatchVideoRender(BaseModel):
     walkthrough: bool = False
     input_kwargs: ffmpeg_toolkit.types.FFKwargs = Field(default_factory=dict)
     output_kwargs: ffmpeg_toolkit.types.FFKwargs = Field(default_factory=dict)
+    delete_after: bool = False
     post_hook: Callable | None = None
 
     def model_post_init(self, *args, **kwargs):
@@ -214,8 +205,8 @@ class BatchVideoRender(BaseModel):
         if self.valid_extensions is None:
             self.valid_extensions = set(VideoSuffix)
 
-    @property
     @computed_field
+    @property
     def video_files(self) -> list[Path]:
         """List all video files in the specified folder with valid extensions."""
         files = _list_video_files(
@@ -228,14 +219,15 @@ class BatchVideoRender(BaseModel):
 
     def apply(self, task: Callable):
         """Batch Render the video files."""
-        for video in self.video_files:  # type: ignore
-            result_or_output = task(
+        for video in self.video_files:
+            output_gile = task(
                 input_file=video,
                 output_file=self.output_folder_path,
+                options={"delete_after": self.delete_after},
             )
             if self.post_hook:
                 logger.info("Post hooking...")
-                self.post_hook(video, result_or_output)
+                self.post_hook(video, output_gile)
 
 
 class MergeByDate(BatchVideoRender):
@@ -245,7 +237,6 @@ class MergeByDate(BatchVideoRender):
         default=6, ge=0, le=23, description="Hour to use as day boundary (0-23)"
     )
     timestamp_pattern: re.Pattern
-    delete_after: bool = False
 
     @computed_field
     @property
@@ -279,16 +270,17 @@ class MergeByDate(BatchVideoRender):
                 self.output_kwargs,
             )
 
-            # Clean up original video files and directories
+            # Clean up original video directories
             if self.delete_after:
-                logger.info("Deleting source videos.")
                 dirs_to_delete: set[Path] = set()
-                for videos in self.videos_grouped_by_date.values():  # type: ignore
+                for videos in self.videos_grouped_by_date.values():
                     for video in videos.values():
+                        logger.info(f"Delete source video {video}.")
                         os.remove(video)
                         dirs_to_delete.add(video.parent)
                 for directory in dirs_to_delete:
                     if list(directory.iterdir()) == []:
+                        logger.info(f"Delete source videos dir {directory}.")
                         os.rmdir(directory)
 
         except OSError as e:
