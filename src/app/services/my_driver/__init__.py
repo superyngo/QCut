@@ -1,4 +1,5 @@
-from .my_driver import init_my_driver, browser_instances, MyBrowser
-from . import types
+from .my_driver import MyDriver
 
-__all__: list[str] = ["init_my_driver", "types", "browser_instances", "MyBrowser"]
+__all__: list[str] = [
+    "MyDriver",
+]

@@ -23,6 +23,7 @@ from typing import (
     NotRequired,
     Optional,
     TypedDict,
+    Self,
 )
 
 try:
@@ -319,7 +320,7 @@ class FPRenderTasks(FPCreateRender):
         input_file: str | Path,
         input_kwargs: FFKwargs | None = None,
         output_kwargs: FFKwargs | None = None,
-    ) -> FPCreateRender:
+    ) -> Self:
         defalut_output_kwargs: FFKwargs = {
             "v": "error",
             "print_format": "json",
@@ -386,7 +387,7 @@ class FPRenderTasks(FPCreateRender):
         input_file: str | Path,
         input_kwargs: FFKwargs | None = None,
         output_kwargs: FFKwargs | None = None,
-    ) -> FPCreateRender:
+    ) -> Self:
         defalut_output_kwargs: FFKwargs = {
             "v": "error",
             "show_entries": "format=duration",
@@ -419,7 +420,7 @@ class FPRenderTasks(FPCreateRender):
         input_file: str | Path,
         input_kwargs: FFKwargs | None = None,
         output_kwargs: FFKwargs | None = None,
-    ) -> FPCreateRender:
+    ) -> Self:
         defalut_output_kwargs: FFKwargs = {
             "v": "error",
             "show_entries": "format=duration",
@@ -446,7 +447,7 @@ class FPRenderTasks(FPCreateRender):
         input_file: str | Path,
         input_kwargs: FFKwargs | None = None,
         output_kwargs: FFKwargs | None = None,
-    ) -> FPCreateRender:
+    ) -> Self:
         defalut_output_kwargs: FFKwargs = {
             "v": "error",
             "select_streams": "v:0",
@@ -480,7 +481,7 @@ class FPRenderTasks(FPCreateRender):
         input_file: str | Path,
         input_kwargs: FFKwargs | None = None,
         output_kwargs: FFKwargs | None = None,
-    ) -> FPCreateRender:
+    ) -> Self:
         defalut_output_kwargs: FFKwargs = {
             "v": "error",
             "select_streams": "v",
@@ -526,7 +527,7 @@ class FFCreateRender(FFCreateCommand):
     post_task: Optional[Callable[..., Any]] = None
     return_result: bool = False
 
-    def override_option(self, options: OptionFFRender | None = None):
+    def override_option(self, options: OptionFFRender | None = None) -> Self:
         if options is not None:
             for k, v in options.items():
                 setattr(self, k, v)
@@ -611,7 +612,7 @@ class FFRenderTasks(FFCreateRender):
         output_file: Optional[Path | str] = None,
         input_kwargs: FFKwargs | None = None,
         output_kwargs: FFKwargs | None = None,
-    ) -> FFCreateRender:
+    ) -> Self:
         self.input_file = input_file
         self.output_file = output_file
         if input_kwargs is not None:
@@ -629,7 +630,7 @@ class FFRenderTasks(FFCreateRender):
         rerender: bool = False,
         input_kwargs: FFKwargs | None = None,
         output_kwargs: FFKwargs | None = None,
-    ) -> FFCreateRender:
+    ) -> Self:
         self.task_descripton = f"{_TASKS.CUT}_{_convert_timestamp_to_seconds(ss)}-{_convert_timestamp_to_seconds(to)}"
         self.input_file = input_file
         self.output_file = output_file
@@ -652,7 +653,7 @@ class FFRenderTasks(FFCreateRender):
         multiple: float | int = DEFAULTS.speedup_multiple.value,
         input_kwargs: FFKwargs | None = None,
         output_kwargs: FFKwargs | None = None,
-    ) -> FFCreateRender:
+    ) -> Self:
         self.task_descripton = f"{_TASKS.SPEEDUP}_by_{multiple}"
         self.input_file = input_file
         self.output_file = output_file
@@ -688,7 +689,7 @@ class FFRenderTasks(FFCreateRender):
         b2_multiple: float = 0,  # 0 means remove this part
         input_kwargs: FFKwargs | None = None,
         output_kwargs: FFKwargs | None = None,
-    ) -> FFCreateRender:
+    ) -> Self:
         self.task_descripton = f"{_TASKS.JUMPCUT}_b1({b1_duration}x{b1_multiple})_b2({b2_duration}x{b2_multiple})"
         self.input_file = input_file
         self.output_file = output_file
@@ -719,7 +720,7 @@ class FFRenderTasks(FFCreateRender):
         output_file: Path | None = None,
         input_kwargs: FFKwargs | None = None,
         output_kwargs: FFKwargs | None = None,
-    ) -> FFCreateRender:
+    ) -> Self:
         # Create input.txt
         if isinstance(input_dir_or_files, Iterable):
             input_dir_or_files = [Path(video) for video in input_dir_or_files]
@@ -755,7 +756,7 @@ class FFRenderTasks(FFCreateRender):
         sampling_duration: float = DEFAULTS.sampling_duration.value,
         input_kwargs: FFKwargs | None = None,
         output_kwargs: FFKwargs | None = None,
-    ) -> FFCreateRender:
+    ) -> Self:
         self.task_descripton = f"{_TASKS.GET_NON_SILENCE_SEGS}_by_{dB}"
         self.input_file = input_file
         self.output_file = Path()
@@ -781,7 +782,7 @@ class FFRenderTasks(FFCreateRender):
         sampling_duration: float = DEFAULTS.sampling_duration.value,
         input_kwargs: FFKwargs | None = None,
         output_kwargs: FFKwargs | None = None,
-    ) -> FFCreateRender:
+    ) -> Self:
         self.task_descripton = f"{_TASKS.GET_MOTION_SEGS}"
         self.input_file = input_file = Path(input_file)
         self.output_file = Path()
@@ -810,7 +811,7 @@ class FFRenderTasks(FFCreateRender):
         sampling_duration: float = DEFAULTS.sampling_duration.value,
         input_kwargs: FFKwargs | None = None,
         output_kwargs: FFKwargs | None = None,
-    ) -> FFCreateRender:
+    ) -> Self:
         self.task_descripton = f"{_TASKS.CUT_SILENCE_RERENDER}_by_{dB}"
         self.input_file = input_file
         self.output_file = output_file
@@ -836,7 +837,7 @@ class FFRenderTasks(FFCreateRender):
         sampling_duration: float = DEFAULTS.sampling_duration.value,
         input_kwargs: FFKwargs | None = None,
         output_kwargs: FFKwargs | None = None,
-    ) -> FFCreateRender:
+    ) -> Self:
         self.task_descripton = f"{_TASKS.CUT_MOTIONLESS_RERENDER}_by_{threshold}"
         self.input_file = input_file
         self.output_file = output_file
@@ -861,7 +862,7 @@ class FFRenderTasks(FFCreateRender):
         output_dir: Optional[Path | str] = None,
         input_kwargs: FFKwargs | None = None,
         output_kwargs: FFKwargs | None = None,
-    ) -> FFCreateRender:
+    ) -> Self:
         self.task_descripton = f"{_TASKS.SPLIT}"
         input_file = Path(input_file)
         if output_dir is None:

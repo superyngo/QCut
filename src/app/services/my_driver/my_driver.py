@@ -1,19 +1,17 @@
 import time
-import nodriver as nd
-from functools import cached_property
 from nodriver import Tab, Browser
+import nodriver as nd
 from nodriver.cdp import network
 from pathlib import Path
-from pydantic import BaseModel, computed_field
+from pydantic import BaseModel, field_validator
 from weakref import WeakValueDictionary
+from typing import Self, Any
 from ...utils import composer
-from .types import MyDriverConfig
-
-__all__: list[str] = ["init_my_driver", "browser_instances"]
 
 
 # Multiton state
-browser_instances: WeakValueDictionary[Path | None, Browser] = WeakValueDictionary()
+type BrowserInstances = WeakValueDictionary[str, Browser]
+driver_instances: BrowserInstances = WeakValueDictionary()
 
 # Create a WeakValueDictionary
 response_codes: WeakValueDictionary[str, int] = WeakValueDictionary()
@@ -41,75 +39,47 @@ async def get_response(tab: Tab, url: str) -> int:
     return response_codes[url]
 
 
-class MyBrowser(BaseModel):
+class MyDriver(BaseModel):
+    """_summary_
+
+        Args:
+            user_data_dir (Path | None, optional): _description_. Defaults to None.
+            browser_executable_path (Path | None, optional): _description_. Defaults to None.
+
+    Returns:
+        _type_: _description_
+    """
+
     user_data_dir: Path | None = None
     browser_executable_path: Path | None = None
+    browser: Browser | None = None
+    tab: Tab | None = None
+    driver_instances: BrowserInstances = driver_instances
+    init: Any
 
     class Config:
         arbitrary_types_allowed = True
-        frozen = True
 
-    @computed_field
-    @cached_property
-    async def browser(self) -> Browser:
-        """init a driver
+    @field_validator("init")
+    @classmethod
+    async def init_driver(cls, init, self):
+        """Ensure driver is initialized."""
+        global driver_instances
+        driver_id: str = str(self.user_data_dir) + str(self.browser_executable_path)
 
-        Args:
-            browser_config (MyDriverConfig | None, optional): config for driver/browser. Defaults to None.
-
-        Returns:
-            uc.Browser: browser
-        """
-        global browser_instances
-        browser_id: Path | None = self.user_data_dir
-
-        if (
-            browser_id in browser_instances
-            and not browser_instances[browser_id].stopped
-        ):
-            browser: Browser = browser_instances[browser_id]
+        # Initialize or reuse the browser instance
+        if driver_id in driver_instances and not driver_instances[driver_id].stopped:
+            self.browser = driver_instances[driver_id]
         else:
-            browser: Browser = await nd.start(
+            self.browser = await nd.start(
                 user_data_dir=self.user_data_dir,
                 browser_executable_path=self.browser_executable_path,
             )
+            self.driver_instances[driver_id] = self.browser
 
-        browser_instances[browser_id] = browser
-
-        return browser
-
-    @computed_field
-    @cached_property
-    async def tab(self) -> Tab:
-        tab: Tab = await self.browser.get("about:blank")
-        composer.compose(tab, {"get_response": get_response})
-        return tab
-
-
-async def init_my_driver(browser_config: MyDriverConfig | None = None) -> Tab:
-    """init a driver
-
-    Args:
-        browser_config (MyDriverConfig | None, optional): config for driver/browser. Defaults to None.
-
-    Returns:
-        uc.Browser: browser
-    """
-    global browser_instances
-    browser_config = browser_config or {}
-    browser_id: Path = browser_config.get("user_data_dir", Path())
-
-    if browser_id in browser_instances and not browser_instances[browser_id].stopped:
-        browser: Browser = browser_instances[browser_id]
-    else:
-        browser: Browser = await nd.start(**browser_config)
-
-    tab: Tab = await browser.get("about:blank")
-
-    do_compose: int = composer.compose(tab, {"get_response": get_response})
-    browser_instances[browser_id] = browser
-
-    return tab
+        # Initialize the tab
+        self.tab = await self.browser.get("about:blank")
+        composer.compose(self.tab, {"get_response": get_response})
 
 
 # Restrart not working yet
@@ -120,6 +90,6 @@ async def init_my_driver(browser_config: MyDriverConfig | None = None) -> Tab:
 #         for (k, v) in self.config.__dict__.items()
 #         if k in ["user_data_dir", "browser_executable_path"]
 #     }
-#     browser_id: Path = browser_config.get("user_data_dir", Path())
-#     browser_instances[browser_id] = await nd.start(**browser_config)
-#     self = browser_instances[browser_id]
+#     driver_id: Path = browser_config.get("user_data_dir", Path())
+#     driver_instances[driver_id] = await nd.start(**browser_config)
+#     self = driver_instances[driver_id]

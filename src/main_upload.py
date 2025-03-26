@@ -1,19 +1,17 @@
 import os
 import asyncio
 from pathlib import Path
-from app import GPhoto_uploader, browser_instances, logger
-from app.services.my_driver.types import MyDriverConfig
-from app.services.my_driver import MyBrowser
+
+# from app import GPUploader, logger
+from app.services import MyDriver
 
 os.environ["HTTPS_PROXY"] = ""
 os.environ["HTTP_PROXY"] = ""
 
-b = MyBrowser(
-    browser_executable_path=Path(
-        r"C:\Program Files (x86)\Microsoft\EdgeCore\134.0.3124.83\msedge.exe"
-    )
-)
-await b.browser
+edge_path = Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
+
+driver = MyDriver(browser_executable_path=edge_path, init=5)
+# await driver.init()
 
 # sample
 name = "abc"
@@ -45,11 +43,11 @@ upload_assignments: tasks.UploaderInfo = {
     "assignments": [task1, task2],
 }
 
+assignments = upload_assignments.get("assignments")
+logger.info(f"Start uploading tasks:{assignments}")
+
 
 async def main():
-    assignments = upload_assignments.get("assignments")
-    logger.info(f"Start uploading tasks:{assignments}")
-
     if not assignments:
         logger.info("No assignment")
         return

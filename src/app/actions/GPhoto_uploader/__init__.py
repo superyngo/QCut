@@ -1,4 +1,4 @@
-from .gp_uploader import upload_handler
+from .gp_uploader import GPUploader
 from . import types
 
-__all__: list[str] = ["upload_handler", "types"]
+__all__: list[str] = ["GPUploader"]

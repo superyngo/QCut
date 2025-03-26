@@ -1,7 +1,6 @@
-from .actions import mideo_converter, GPhoto_uploader
+from .actions import mideo_converter, GPUploader
+from .common import constants, logger
 from . import utils
-from .common import logger, constants
-from .services.my_driver import browser_instances
 
 # from .actions.GPhoto_uploader.gp_uploader import upload_handler
 
@@ -12,9 +11,8 @@ constants.APP_PATHS.APP_DATA.mkdir(parents=True, exist_ok=True)
 
 __all__: list[str] = [
     "constants",
-    "utils",
     "logger",
+    "utils",
     "mideo_converter",
-    "GPhoto_uploader",
-    "browser_instances",
+    "GPUploader",
 ]

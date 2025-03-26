@@ -1,13 +1,30 @@
 import asyncio
-from pathlib import Path
 import os
+from pathlib import Path
 from nodriver import Tab
 from app.common import logger
-from app.services import my_driver
+from app.services import MyDriver
 from .types import UploaderTask
-from pydantic import BaseModel, computed_field, Field
+from pydantic import computed_field, field_validator, AnyUrl
 
 __all__: list[str] = ["upload_handler"]
+
+
+class GPUploader(MyDriver):
+    name: str
+    local_album_path: Path
+    GPhoto_url: AnyUrl
+    delete_after: bool = False
+
+    @field_validator("driver")
+    @classmethod
+    async def validate_driver(cls, driver, info):
+        """Ensure driver is initialized."""
+        if driver is None:
+            driver = await MyDriver.create(
+                info.user_data_dir, info.browser_executable_path
+            )
+        return driver
 
 
 async def _upload(tab: Tab, mkv_files: list[Path]) -> int:
@@ -79,7 +96,9 @@ async def upload_handler(task: UploaderTask) -> int:
         int: _description_
     """
 
-    browser_config: my_driver.types.MyDriverConfig = task.get("browser_config", {})
+    browser_config: my_driver.my_driver_types.MyDriverConfig = task.get(
+        "browser_config", {}
+    )
     tab: Tab = await my_driver.init_my_driver(browser_config)
 
     do_get: Tab = await tab.get(task["GPhoto_url"])
