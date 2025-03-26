@@ -1,12 +1,10 @@
 from typing import TypedDict, NotRequired
 from pathlib import Path
-from app.services import MyDriver
+from pydantic import AnyUrl
 
 
-class UploaderTask(TypedDict):
+class GPUploaderTask(TypedDict):
     name: str
     local_album_path: Path
-    GPhoto_url: str
-    mkv_files: NotRequired[list[Path]]
-    driver: MyDriver
+    GPhoto_url: AnyUrl
     delete_after: NotRequired[bool]

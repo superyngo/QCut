@@ -2,15 +2,25 @@ import os
 import asyncio
 from pathlib import Path
 
-# from app import GPUploader, logger
-from app.services import MyDriver
+from app import GPUploader, logger
 
 os.environ["HTTPS_PROXY"] = ""
 os.environ["HTTP_PROXY"] = ""
 
 edge_path = Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
 
-driver = MyDriver(browser_executable_path=edge_path, init=5)
+driver = GPUploader(
+    driver_config={"browser_executable_path": edge_path},
+    task={
+        "name": "Mom",
+        "local_album_path": Path(r"F:\NoCloud\c"),
+        "GPhoto_url": "https://photos.google.com/share/AF1QipOjEaSgW_YJxNembwfgYQbouBBHSUyQxFGj2Oq6dpw_EjkWeCBRkSRwczoP7WwoUw",
+        "delete_after": True,
+    },
+)
+await driver.init()
+logger.info(driver.model_dump_json())
+
 # await driver.init()
 
 # sample

@@ -3,9 +3,9 @@ from nodriver import Tab, Browser
 import nodriver as nd
 from nodriver.cdp import network
 from pathlib import Path
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, Field
 from weakref import WeakValueDictionary
-from typing import Self, Any
+from typing import Self, TypedDict, NotRequired
 from ...utils import composer
 
 
@@ -39,6 +39,11 @@ async def get_response(tab: Tab, url: str) -> int:
     return response_codes[url]
 
 
+class DriverConfig(TypedDict):
+    user_data_dir: NotRequired[Path]
+    browser_executable_path: NotRequired[Path]
+
+
 class MyDriver(BaseModel):
     """_summary_
 
@@ -50,36 +55,38 @@ class MyDriver(BaseModel):
         _type_: _description_
     """
 
-    user_data_dir: Path | None = None
-    browser_executable_path: Path | None = None
+    driver_config: DriverConfig = Field(default_factory=DriverConfig)
     browser: Browser | None = None
     tab: Tab | None = None
     driver_instances: BrowserInstances = driver_instances
-    init: Any
 
     class Config:
         arbitrary_types_allowed = True
 
-    @field_validator("init")
-    @classmethod
-    async def init_driver(cls, init, self):
+    async def init(self) -> Self:
         """Ensure driver is initialized."""
         global driver_instances
-        driver_id: str = str(self.user_data_dir) + str(self.browser_executable_path)
+        user_data_dir: Path | None = self.driver_config.get("user_data_dir")
+        browser_executable_path: Path | None = self.driver_config.get(
+            "browser_executable_path"
+        )
+
+        driver_id: str = str(user_data_dir) + str(browser_executable_path)
 
         # Initialize or reuse the browser instance
         if driver_id in driver_instances and not driver_instances[driver_id].stopped:
             self.browser = driver_instances[driver_id]
         else:
             self.browser = await nd.start(
-                user_data_dir=self.user_data_dir,
-                browser_executable_path=self.browser_executable_path,
+                user_data_dir=user_data_dir,
+                browser_executable_path=browser_executable_path,
             )
             self.driver_instances[driver_id] = self.browser
 
         # Initialize the tab
         self.tab = await self.browser.get("about:blank")
         composer.compose(self.tab, {"get_response": get_response})
+        return self
 
 
 # Restrart not working yet
