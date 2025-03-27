@@ -10,6 +10,7 @@ def main() -> None:
         walkthrough=True,
         delete_after=False,
         start_hour=6,
+        timestamp_pattern=mideo_converter.RE_PATTERN.EPOCHSTAMP.value,
     ).merge()
 
     mideo_converter.BatchVideoRender(
@@ -18,7 +19,14 @@ def main() -> None:
         valid_extensions={mideo_converter.VideoSuffix.MKV},
         walkthrough=False,
         delete_after=False,
-    ).apply(task=mideo_converter.ffmpeg_toolkit.PARTIAL_TASKS.cut_silence(dB=-15))
+        post_hook=mideo_converter.PostHooks.set_epoch_timestamp(
+            timestamp_pattern=mideo_converter.RE_PATTERN.EPOCHSTAMP.value
+        ),
+    ).apply(
+        task=mideo_converter.ffmpeg_toolkit.PARTIAL_TASKS.partion_video(
+            output_dir=target_path / "partitioned"
+        )
+    )
 
 
 if __name__ == "__main__":

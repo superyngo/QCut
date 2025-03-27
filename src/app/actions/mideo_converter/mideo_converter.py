@@ -1,11 +1,11 @@
 import os
 import re
+import ffmpeg_toolkit
 from datetime import datetime, timedelta, date
 from enum import Enum
 from pathlib import Path
 from pydantic import BaseModel, computed_field, Field
 from app.common import logger
-from app.services import ffmpeg_toolkit
 from typing import Callable
 
 VideoSuffix = ffmpeg_toolkit.types.VideoSuffix
@@ -79,12 +79,12 @@ type GroupedVideos = dict[date, dict[int, Path]]
 
 
 def _group_files_by_date(
-    datetime_pattern: re.Pattern, video_files: list[Path], start_hour: int = 0
+    timestamp_pattern: re.Pattern, video_files: list[Path], start_hour: int = 0
 ) -> GroupedVideos:
     grouped_files: GroupedVideos = {}
 
     for video in video_files:
-        epoch_time: int | None = _extract_pattern(str(video.stem), datetime_pattern)
+        epoch_time: int | None = _extract_pattern(str(video.stem), timestamp_pattern)
 
         # Check if epoch_time is a valid epoch timestamp or a datestamp
         if len(str(epoch_time)) == 14:
@@ -161,11 +161,11 @@ def _merge_videos(
 
 class PostHooks(FunctionEnum):
     @staticmethod
-    def set_epoch_timestamp(datetime_pattern: re.Pattern):
+    def set_epoch_timestamp(timestamp_pattern: re.Pattern):
         def _set_epoch_timestamp(_video: Path, output_file: Path):
             """Set the epoch timestamp of the video file."""
             epoch_time: int | None = _extract_pattern(
-                str(output_file.stem), datetime_pattern
+                str(output_file.stem), timestamp_pattern
             )
 
             # Check if epoch_time is a valid epoch timestamp or a datestamp
