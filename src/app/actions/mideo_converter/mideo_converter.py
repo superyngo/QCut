@@ -141,7 +141,7 @@ def _merge_videos(
         logger.info(f"{output_file = }")
         try:
             # Use ffmpeg to concatenate videos
-            ffmpeg_toolkit.FFRenderTasks().merge(
+            ffmpeg_toolkit.Merge(
                 input_dir_or_files=input_files,
                 output_file=output_file,
                 output_kwargs=output_kwargs,
@@ -150,7 +150,7 @@ def _merge_videos(
             os.utime(output_file, (first_video_epoch, first_video_epoch))
 
             logger.info(
-                f"Processed {date_key}, saved to {output_file}, set timestamps to {first_video_epoch}."
+                f"Merged {date_key} video, saved to {output_file}, set timestamps to {first_video_epoch}."
             )
 
         except Exception as e:
