@@ -3,7 +3,7 @@ from nodriver import Tab, Browser
 import nodriver as nd
 from nodriver.cdp import network
 from pathlib import Path
-from pydantic import BaseModel, field_validator, Field
+from pydantic import BaseModel, Field
 from weakref import WeakValueDictionary
 from typing import Self, TypedDict, NotRequired
 from ...utils import composer
@@ -39,11 +39,6 @@ async def get_response(tab: Tab, url: str) -> int:
     return response_codes[url]
 
 
-class DriverConfig(TypedDict):
-    user_data_dir: NotRequired[Path]
-    browser_executable_path: NotRequired[Path]
-
-
 class MyDriver(BaseModel):
     """_summary_
 
@@ -55,10 +50,14 @@ class MyDriver(BaseModel):
         _type_: _description_
     """
 
-    driver_config: DriverConfig = Field(default_factory=DriverConfig)
+    class DriverConfig(TypedDict):
+        user_data_dir: NotRequired[Path]
+        browser_executable_path: NotRequired[Path]
+
     browser: Browser | None = None
     tab: Tab | None = None
     driver_instances: BrowserInstances = driver_instances
+    driver_config: DriverConfig = Field(default_factory=DriverConfig)
 
     class Config:
         arbitrary_types_allowed = True

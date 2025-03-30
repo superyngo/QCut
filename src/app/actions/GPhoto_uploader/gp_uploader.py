@@ -4,20 +4,54 @@ from pydantic import computed_field
 from pathlib import Path
 from app.common import logger
 from app.services import MyDriver
-from .gp_uploader_types import GPUploaderTask
-
-__all__: list[str] = ["upload_handler"]
+from typing import TypedDict, NotRequired
+from pydantic.networks import AnyUrl
 
 
 class GPUploader(MyDriver):
-    task: GPUploaderTask
+    """_summary_
+
+    Args:
+       task: GPUploaderTask | None = None
+
+    Returns:
+        _type_: _description_
+    """
+
+    class Assignments(TypedDict):
+        """_summary_
+
+        Args:
+            filename: Path
+            assignments: list["GPUploader.GPUploaderTask"]
+        """
+
+        filename: Path
+        assignments: list["GPUploader.GPUploaderTask"]
+
+    class GPUploaderTask(TypedDict):
+        """_summary_
+
+        Args:
+            name: str
+            local_album_path: Path
+            GPhoto_url: AnyUrl
+            delete_after: NotRequired[bool]
+        """
+
+        name: str
+        local_album_path: Path
+        GPhoto_url: AnyUrl
+        delete_after: NotRequired[bool]
+
+    task: GPUploaderTask | None = None
 
     @computed_field
     @property
     def mkv_files(self) -> list[Path]:
         return [file for file in self.task["local_album_path"].rglob("*.mkv")]
 
-    async def _upload(self) -> int:
+    async def upload(self) -> int:
         if self.tab is None:
             logger.warning("Tab not initialized")
             return 1
@@ -68,6 +102,14 @@ class GPUploader(MyDriver):
         (_delete_mkv_files(self.mkv_files) if self.task.get("delete_after") else 0)
 
         return 0
+
+    def set_task(self, task: GPUploaderTask) -> None:
+        """Set the task for the uploader.
+
+        Args:
+            task (GPUploaderTask): The task to set.
+        """
+        self.task = task
 
 
 def _delete_mkv_files(mkv_files: list[Path]) -> int:

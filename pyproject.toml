@@ -5,7 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.9, <=3.12.8"
 dependencies = [
-    "ffmpeg-toolkit>=0.1.2",
+    "ffmpeg-toolkit>=0.1.4",
     "nodriver>=0.39",
     "pydantic>=2.10.6",
 ]

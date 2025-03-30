@@ -1,64 +1,51 @@
 import os
 import asyncio
 from pathlib import Path
-
-from app import GPUploader, logger
+from pydantic.networks import AnyUrl
+from app import GPUploader, logger, constants
 
 os.environ["HTTPS_PROXY"] = ""
 os.environ["HTTP_PROXY"] = ""
 
 edge_path = Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-
-driver = GPUploader(
-    driver_config={"browser_executable_path": edge_path},
-    task={
-        "name": "Mom",
-        "local_album_path": Path(r"F:\NoCloud\c"),
-        "GPhoto_url": "https://photos.google.com/share/AF1QipOjEaSgW_YJxNembwfgYQbouBBHSUyQxFGj2Oq6dpw_EjkWeCBRkSRwczoP7WwoUw",
-        "delete_after": True,
-    },
-)
-await driver.init()
-logger.info(driver.model_dump_json())
-
-# await driver.init()
-
-# sample
-name = "abc"
-browser_config: MyDriverConfig = {
-    "user_data_dir": Path(config.AppPaths.APP_DATA) / name,
-    "browser_executable_path": Path(
-        r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
-    ),
+driver_config: GPUploader.DriverConfig = {
+    "user_data_dir": Path(constants.APP_PATHS.APP_DATA) / "config",
+    "browser_executable_path": edge_path,
 }
 
-task1: tasks.UploaderTask = {
+task1: GPUploader.GPUploaderTask = {
     "name": "Mom",
     "local_album_path": Path(r"F:\NoCloud\c"),
-    "GPhoto_url": "https://photos.google.com/share/AF1QipOjEaSgW_YJxNembwfgYQbouBBHSUyQxFGj2Oq6dpw_EjkWeCBRkSRwczoP7WwoUw",
-    "browser_config": browser_config,
+    "GPhoto_url": AnyUrl(
+        "https://photos.google.com/share/AF1QipOjEaSgW_YJxNembwfgYQbouBBHSUyQxFGj2Oq6dpw_EjkWeCBRkSRwczoP7WwoUw"
+    ),
     "delete_after": True,
 }
-task2: tasks.UploaderTask = {
+
+task2: GPUploader.GPUploaderTask = {
     "name": "Mom_speedup",
     "local_album_path": Path(r"D:\smb\xiaomi\xiaomi_camera_videos\94f827b4b94e")
     / "cut_sl_speedup",
-    "GPhoto_url": "https://photos.google.com/share/AF1QipNG24NndfSGD9rsiHkz7OBvA5amkVOxcadMFI52a0HZR3m9wlUwTgOn5b2h7YBA2Q",
-    "browser_config": browser_config,
+    "GPhoto_url": AnyUrl(
+        "https://photos.google.com/share/AF1QipNG24NndfSGD9rsiHkz7OBvA5amkVOxcadMFI52a0HZR3m9wlUwTgOn5b2h7YBA2Q"
+    ),
     "delete_after": True,
 }
 
-upload_assignments: tasks.UploaderInfo = {
+
+upload_assignments: GPUploader.Assignments = {
     "filename": Path(),
     "assignments": [task1, task2],
 }
 
-assignments = upload_assignments.get("assignments")
-logger.info(f"Start uploading tasks:{assignments}")
+logger.info(f"Start uploading tasks:{upload_assignments}")
 
 
 async def main():
-    if not assignments:
+    driver = GPUploader(driver_config=driver_config)
+    await driver.init()
+
+    if not upload_assignments:
         logger.info("No assignment")
         return
 
