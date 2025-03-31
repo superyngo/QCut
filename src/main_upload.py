@@ -2,18 +2,18 @@ import os
 import asyncio
 from pathlib import Path
 from pydantic.networks import AnyUrl
-from app import GPUploader, logger, constants
+from app import gp_uploader, logger, constants
 
 os.environ["HTTPS_PROXY"] = ""
 os.environ["HTTP_PROXY"] = ""
 
 edge_path = Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-driver_config: GPUploader.DriverConfig = {
+driver_config: gp_uploader.types.DriverConfig = {
     "user_data_dir": Path(constants.APP_PATHS.APP_DATA) / "config",
     "browser_executable_path": edge_path,
 }
 
-task1: GPUploader.GPUploaderTask = {
+uploader_config_1: gp_uploader.types.GPUploaderConfig = {
     "name": "Mom",
     "local_album_path": Path(r"F:\NoCloud\c"),
     "GPhoto_url": AnyUrl(
@@ -21,8 +21,7 @@ task1: GPUploader.GPUploaderTask = {
     ),
     "delete_after": True,
 }
-
-task2: GPUploader.GPUploaderTask = {
+uploader_config_2: gp_uploader.types.GPUploaderConfig = {
     "name": "Mom_speedup",
     "local_album_path": Path(r"D:\smb\xiaomi\xiaomi_camera_videos\94f827b4b94e")
     / "cut_sl_speedup",
@@ -31,49 +30,44 @@ task2: GPUploader.GPUploaderTask = {
     ),
     "delete_after": True,
 }
-
-
-upload_assignments: GPUploader.Assignments = {
+uploader1 = gp_uploader.Uploader(
+    driver_config=driver_config, uploader_config=uploader_config_1
+)
+uploader2 = gp_uploader.Uploader(
+    driver_config=driver_config, uploader_config=uploader_config_2
+)
+upload_assignments: gp_uploader.types.Assignments = {
     "filename": Path(),
-    "assignments": [task1, task2],
+    "assignments": [uploader1, uploader2],
 }
-
-logger.info(f"Start uploading tasks:{upload_assignments}")
 
 
 async def main():
-    driver = GPUploader(driver_config=driver_config)
-    await driver.init()
-
-    if not upload_assignments:
+    assignments = upload_assignments.get("assignments", [])
+    if not assignments:
         logger.info("No assignment")
         return
-
-    for task in assignments:
-        folder: Path = task["local_album_path"]
-        task["mkv_files"] = mkv_files = [
-            folder / file for file in os.listdir(folder) if file.endswith(".mkv")
-        ]
-
-        if not mkv_files:
-            logger.info(f"No mkv files in {folder}, pass")
+    logger.info(f"Start uploading: {upload_assignments}")
+    for uploader in assignments:
+        if not uploader.mkv_files:
+            logger.info(
+                f"No mkv files in {uploader.uploader_config.get('local_album_path')}, pass"
+            )
             return
+        await uploader.init()
 
-        logger.info(f"Start uploading {mkv_files} to {task['GPhoto_url']}")
-        await GPhoto_uploader.upload_handler(task)
+        await uploader.upload()
 
     # Clear tabs
-    logger.info(f"All tasks done, close all browsers")
-    keys = list(browser_instances.keys())
-    for key in keys:
-        if key in browser_instances:
-            browser_instances[key].stop()
-            del browser_instances[key]
+    logger.info("All uploads done, close all browsers")
 
-    # Your script code here
-    # print("This is a script in debug mode.")
-    # Set a breakpoint
-    # pdb.set_trace()
+    for uploader in assignments:
+        if uploader.browser is None:
+            continue
+        if uploader.browser.stopped:
+            continue
+        uploader.browser.stop()
+        del uploader
 
 
 if __name__ == "__main__":

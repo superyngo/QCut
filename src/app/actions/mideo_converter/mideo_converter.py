@@ -10,6 +10,7 @@ from typing import Callable
 
 VideoSuffix = ffmpeg_toolkit.types.VideoSuffix
 FunctionEnum = ffmpeg_toolkit.types.FunctionEnum
+PARTIAL_TASKS = ffmpeg_toolkit.PARTIAL_TASKS
 
 
 class RE_PATTERN(Enum):
@@ -217,7 +218,7 @@ class BatchVideoRender(BaseModel):
         logger.info(f"Found {len(files)} video files in {self.input_folder_path}")
         return files
 
-    def apply(self, task: Callable):
+    def apply(self, task: PARTIAL_TASKS) -> None:
         """Batch Render the video files."""
         for video in self.video_files:
             output_gile = task(

@@ -5,9 +5,10 @@ from nodriver.cdp import network
 from pathlib import Path
 from pydantic import BaseModel, Field
 from weakref import WeakValueDictionary
-from typing import Self, TypedDict, NotRequired
+from typing import Self
 from ...utils import composer
 
+from .my_driver_types import DriverConfig
 
 # Multiton state
 type BrowserInstances = WeakValueDictionary[str, Browser]
@@ -49,10 +50,6 @@ class MyDriver(BaseModel):
     Returns:
         _type_: _description_
     """
-
-    class DriverConfig(TypedDict):
-        user_data_dir: NotRequired[Path]
-        browser_executable_path: NotRequired[Path]
 
     browser: Browser | None = None
     tab: Tab | None = None

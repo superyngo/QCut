@@ -1,4 +1,4 @@
-from .actions import mideo_converter, GPUploader
+from .actions import mideo_converter, gp_uploader
 from .common import constants, logger
 from . import utils
 
@@ -14,5 +14,5 @@ __all__: list[str] = [
     "logger",
     "utils",
     "mideo_converter",
-    "GPUploader",
+    "gp_uploader",
 ]

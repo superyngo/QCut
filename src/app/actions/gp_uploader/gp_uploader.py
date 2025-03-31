@@ -1,14 +1,15 @@
 import asyncio
 import os
-from pydantic import computed_field
+from pydantic import computed_field, Field
+from typing import Self
 from pathlib import Path
 from app.common import logger
-from app.services import MyDriver
-from typing import TypedDict, NotRequired
-from pydantic.networks import AnyUrl
+from app.services.my_driver import MyDriver
+from ffmpeg_toolkit import types as ffmpeg_types
+from .gp_uploader_types import GPUploaderConfig
 
 
-class GPUploader(MyDriver):
+class Uploader(MyDriver):
     """_summary_
 
     Args:
@@ -18,38 +19,45 @@ class GPUploader(MyDriver):
         _type_: _description_
     """
 
-    class Assignments(TypedDict):
-        """_summary_
-
-        Args:
-            filename: Path
-            assignments: list["GPUploader.GPUploaderTask"]
-        """
-
-        filename: Path
-        assignments: list["GPUploader.GPUploaderTask"]
-
-    class GPUploaderTask(TypedDict):
-        """_summary_
-
-        Args:
-            name: str
-            local_album_path: Path
-            GPhoto_url: AnyUrl
-            delete_after: NotRequired[bool]
-        """
-
-        name: str
-        local_album_path: Path
-        GPhoto_url: AnyUrl
-        delete_after: NotRequired[bool]
-
-    task: GPUploaderTask | None = None
+    uploader_config: GPUploaderConfig | dict = Field(default_factory=dict)
+    valid_extensions: set[ffmpeg_types.VideoSuffix] = {ffmpeg_types.VideoSuffix.MKV}
 
     @computed_field
     @property
     def mkv_files(self) -> list[Path]:
-        return [file for file in self.task["local_album_path"].rglob("*.mkv")]
+        if self.task is None:
+            logger.warning("Task not set")
+            return []
+        if not self.task.get("local_album_path"):
+            logger.warning("No local_album_path")
+            return []
+        if not self.task["local_album_path"].exists():
+            logger.warning("local_album_path does not exist")
+            return []
+        if not self.task["local_album_path"].is_dir():
+            logger.warning("local_album_path is not a directory")
+            return []
+
+        mkv_files = [
+            file
+            for file in self.task["local_album_path"].rglob("*")
+            if file.suffix in self.valid_extensions
+        ]
+
+        if not mkv_files:
+            logger.warning("No valid files found")
+            return []
+
+        return mkv_files
+
+    def set_task(self, task: GPUploaderConfig) -> Self:
+        """Set the task for the uploader.
+
+        Args:
+            task (GPUploaderTask): The task to set.
+        """
+        self.task = task
+        return self
 
     async def upload(self) -> int:
         if self.tab is None:
@@ -102,14 +110,6 @@ class GPUploader(MyDriver):
         (_delete_mkv_files(self.mkv_files) if self.task.get("delete_after") else 0)
 
         return 0
-
-    def set_task(self, task: GPUploaderTask) -> None:
-        """Set the task for the uploader.
-
-        Args:
-            task (GPUploaderTask): The task to set.
-        """
-        self.task = task
 
 
 def _delete_mkv_files(mkv_files: list[Path]) -> int:

@@ -1,4 +1,4 @@
 # from .db_manager import DatabaseManager
-from .my_driver import MyDriver
+from . import my_driver
 
-__all__: list[str] = ["MyDriver"]
+__all__: list[str] = ["my_driver"]
