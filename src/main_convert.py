@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 def main() -> None:
-    target_path: Path = Path(r"C:\Users\user\Downloads")
+    target_path: Path = Path(r"F:\Users\user\Downloads")
 
     mideo_converter.MergeByDate(
         input_folder_path=target_path,

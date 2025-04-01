@@ -105,6 +105,8 @@ class MyDriver(BaseModel):
                 f"Reusing existing browser instance {_driver_instances[self.driver_id]}"
             )
             self.browser = _driver_instances[self.driver_id]
+            self.tab = self.browser.tabs[0]
+
         else:
             logger.info(
                 f"Initialyze browser instance with user data in {self.user_data_dir} and {self.browser_executable_path}"
@@ -114,12 +116,11 @@ class MyDriver(BaseModel):
                 browser_executable_path=self.browser_executable_path,
             )
             _driver_instances[self.driver_id] = self.browser
+            # Initialize the tab
+            self.tab = await self.browser.get("about:blank")
+            composer.compose(self.tab, {"get_response": get_response})
 
         self.driver_instances = _driver_instances
-
-        # Initialize the tab
-        self.tab = await self.browser.get("about:blank")
-        composer.compose(self.tab, {"get_response": get_response})
 
         return self
 
