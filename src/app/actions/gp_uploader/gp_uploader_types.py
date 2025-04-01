@@ -1,23 +1,34 @@
-from typing import TypedDict, NotRequired
+from ffmpeg_toolkit import types as ffmpeg_types
 from pathlib import Path
 from pydantic import AnyUrl
-from app.services.my_driver.my_driver_types import DriverConfig
+from typing import TypedDict, NotRequired
+
+from app.services.my_driver.my_driver_types import MyDriverConfig
 from .gp_uploader import Uploader
+from ...services import my_driver
+from ffmpeg_toolkit import types as ffmpeg_types
+
+type MyDriverConfig = my_driver.types.MyDriverConfig
 
 
-class GPUploaderConfig(TypedDict):
+class UploaderConfig(TypedDict):
     """_summary_
 
     Args:
-        name: str
-        local_album_path: Path
+        task_name: str
+        local_album_path: my_driver.types.DirectoryPath
         GPhoto_url: AnyUrl
-        delete_after: NotRequired[bool]
+        valid_extensions: set[ffmpeg_types.VideoSuffix] | None
+        delete_after: bool
+
+    Returns:
+        _type_: _description_
     """
 
-    name: str
+    task_name: str
     local_album_path: Path
     GPhoto_url: AnyUrl
+    valid_extensions: NotRequired[set[ffmpeg_types.VideoSuffix]]
     delete_after: NotRequired[bool]
 
 

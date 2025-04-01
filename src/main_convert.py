@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 def main() -> None:
-    target_path: Path = Path(r"F:\Users\user\Downloads")
+    target_path: Path = Path(r"C:\Users\user\Downloads")
 
     mideo_converter.MergeByDate(
         input_folder_path=target_path,
@@ -16,7 +16,7 @@ def main() -> None:
 
     mideo_converter.BatchVideoRender(
         input_folder_path=target_path,
-        # output_folder_path=target_path / "partitioned",
+        output_folder_path=target_path / "cl",
         valid_extensions={mideo_converter.VideoSuffix.MKV},
         walkthrough=False,
         delete_after=False,
@@ -24,7 +24,7 @@ def main() -> None:
             timestamp_pattern=mideo_converter.RE_PATTERN.EPOCHSTAMP.value
         ),
     ).apply(
-        task=mideo_converter.PARTIAL_TASKS.cut_motionless(),
+        task=mideo_converter.PARTIAL_TASKS.cut_motionless_rerender(threshold=0.0095),
     )
 
 

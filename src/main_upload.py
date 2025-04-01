@@ -1,41 +1,42 @@
 import os
 import asyncio
 from pathlib import Path
-from pydantic.networks import AnyUrl
+from pydantic import AnyUrl
 from app import gp_uploader, logger, constants
+
+MyDriverConfig = gp_uploader.types.MyDriverConfig
+UploaderConfig = gp_uploader.types.UploaderConfig
 
 os.environ["HTTPS_PROXY"] = ""
 os.environ["HTTP_PROXY"] = ""
 
 edge_path = Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-driver_config: gp_uploader.types.DriverConfig = {
-    "user_data_dir": Path(constants.APP_PATHS.APP_DATA) / "config",
+local_dir = Path(r"C:\Users\user\Downloads")
+driver_config: MyDriverConfig = {
+    "user_data_dir": Path(constants.APP_PATHS.APP_DATA / "config"),
     "browser_executable_path": edge_path,
 }
 
-uploader_config_1: gp_uploader.types.GPUploaderConfig = {
-    "name": "Mom",
-    "local_album_path": Path(r"F:\NoCloud\c"),
-    "GPhoto_url": AnyUrl(
+uploader1 = gp_uploader.Uploader(
+    **driver_config,
+    task_name="Mom",
+    local_album_path=local_dir,
+    GPhoto_url=AnyUrl(
         "https://photos.google.com/share/AF1QipOjEaSgW_YJxNembwfgYQbouBBHSUyQxFGj2Oq6dpw_EjkWeCBRkSRwczoP7WwoUw"
     ),
-    "delete_after": True,
-}
-uploader_config_2: gp_uploader.types.GPUploaderConfig = {
-    "name": "Mom_speedup",
-    "local_album_path": Path(r"D:\smb\xiaomi\xiaomi_camera_videos\94f827b4b94e")
-    / "cut_sl_speedup",
-    "GPhoto_url": AnyUrl(
+    delete_after=False,
+)
+
+uploader2 = gp_uploader.Uploader(
+    **driver_config,
+    task_name="Mom_speedup",
+    local_album_path=local_dir / "cl",
+    GPhoto_url=AnyUrl(
         "https://photos.google.com/share/AF1QipNG24NndfSGD9rsiHkz7OBvA5amkVOxcadMFI52a0HZR3m9wlUwTgOn5b2h7YBA2Q"
     ),
-    "delete_after": True,
-}
-uploader1 = gp_uploader.Uploader(
-    driver_config=driver_config, uploader_config=uploader_config_1
+    delete_after=False,
 )
-uploader2 = gp_uploader.Uploader(
-    driver_config=driver_config, uploader_config=uploader_config_2
-)
+
 upload_assignments: gp_uploader.types.Assignments = {
     "filename": Path(),
     "assignments": [uploader1, uploader2],
@@ -47,14 +48,17 @@ async def main():
     if not assignments:
         logger.info("No assignment")
         return
-    logger.info(f"Start uploading: {upload_assignments}")
+    logger.info(
+        f"Start uploading tasks: {[assignment.task_name for assignment in upload_assignments['assignments']]}"
+    )
     for uploader in assignments:
         if not uploader.mkv_files:
-            logger.info(
-                f"No mkv files in {uploader.uploader_config.get('local_album_path')}, pass"
-            )
+            logger.info(f"No mkv files in {uploader.local_album_path}, pass")
             return
+
         await uploader.init()
+
+        logger.info(f"Start uploading {uploader.task_name} to {uploader.GPhoto_url}")
 
         await uploader.upload()
 
@@ -67,7 +71,7 @@ async def main():
         if uploader.browser.stopped:
             continue
         uploader.browser.stop()
-        del uploader
+        del uploader.driver_instances[uploader.driver_id]
 
 
 if __name__ == "__main__":

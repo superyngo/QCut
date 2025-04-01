@@ -18,7 +18,7 @@ class RE_PATTERN(Enum):
     DATETIMESTAMP = re.compile(r"(?<!\d)\d{14}(?!\d)")  # YYYYMMDDHHMMSS
 
 
-type ValidExtensions = set[VideoSuffix] | set[str] | None
+type ValidExtensions = set[ffmpeg_toolkit.types.VideoSuffix] | set[str] | None
 
 
 def _list_video_files(

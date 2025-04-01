@@ -1,18 +1,30 @@
 import time
 from nodriver import Tab, Browser
 import nodriver as nd
-from nodriver.cdp import network
 from pathlib import Path
-from pydantic import BaseModel, Field
+from nodriver.cdp import network
+from pydantic import BaseModel, computed_field, field_validator
 from weakref import WeakValueDictionary
 from typing import Self
 from ...utils import composer
 
-from .my_driver_types import DriverConfig
+try:
+    from app.common import logger  # type: ignore
+except ImportError:
+    # Fallback to a default value
+    class logger:
+        @classmethod
+        def info(cls, message: str) -> None:
+            print(message)
+
+        @classmethod
+        def error(cls, message: str) -> None:
+            print(message)
+
 
 # Multiton state
 type BrowserInstances = WeakValueDictionary[str, Browser]
-driver_instances: BrowserInstances = WeakValueDictionary()
+_driver_instances: BrowserInstances = WeakValueDictionary()
 
 # Create a WeakValueDictionary
 response_codes: WeakValueDictionary[str, int] = WeakValueDictionary()
@@ -51,37 +63,64 @@ class MyDriver(BaseModel):
         _type_: _description_
     """
 
+    global _driver_instances
+
     browser: Browser | None = None
     tab: Tab | None = None
-    driver_instances: BrowserInstances = driver_instances
-    driver_config: DriverConfig = Field(default_factory=DriverConfig)
+    driver_instances: BrowserInstances = _driver_instances
+    user_data_dir: Path | None = None
+    browser_executable_path: Path | None = None
+
+    @field_validator("user_data_dir")
+    def validate_user_data_dir(cls, value: Path) -> Path:
+        if value.is_file():
+            raise ValueError(f"The path '{value}' is a file.")
+        return value
+
+    @field_validator("browser_executable_path")
+    def validate_browser_executable_path(cls, value: Path) -> Path:
+        if not value.exists():
+            raise ValueError(f"The path '{value}' does not exist.")
+        if not value.is_file():
+            raise ValueError(f"The path '{value}' is not a file.")
+        return value
+
+    @computed_field
+    @property
+    def driver_id(self) -> str:
+        """Get the browser id."""
+        return str(self.user_data_dir) + str(self.browser_executable_path)
 
     class Config:
         arbitrary_types_allowed = True
 
     async def init(self) -> Self:
         """Ensure driver is initialized."""
-        global driver_instances
-        user_data_dir: Path | None = self.driver_config.get("user_data_dir")
-        browser_executable_path: Path | None = self.driver_config.get(
-            "browser_executable_path"
-        )
-
-        driver_id: str = str(user_data_dir) + str(browser_executable_path)
-
         # Initialize or reuse the browser instance
-        if driver_id in driver_instances and not driver_instances[driver_id].stopped:
-            self.browser = driver_instances[driver_id]
-        else:
-            self.browser = await nd.start(
-                user_data_dir=user_data_dir,
-                browser_executable_path=browser_executable_path,
+        if (
+            self.driver_id in _driver_instances.keys()
+            and not _driver_instances[self.driver_id].stopped
+        ):
+            logger.info(
+                f"Reusing existing browser instance {_driver_instances[self.driver_id]}"
             )
-            self.driver_instances[driver_id] = self.browser
+            self.browser = _driver_instances[self.driver_id]
+        else:
+            logger.info(
+                f"Initialyze browser instance with user data in {self.user_data_dir} and {self.browser_executable_path}"
+            )
+            self.browser = await nd.start(
+                user_data_dir=self.user_data_dir,
+                browser_executable_path=self.browser_executable_path,
+            )
+            _driver_instances[self.driver_id] = self.browser
+
+        self.driver_instances = _driver_instances
 
         # Initialize the tab
         self.tab = await self.browser.get("about:blank")
         composer.compose(self.tab, {"get_response": get_response})
+
         return self
 
 

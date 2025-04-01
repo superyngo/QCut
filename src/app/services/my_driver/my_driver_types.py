@@ -1,7 +1,7 @@
 from pathlib import Path
-from typing import TypedDict, NotRequired
+from typing import TypedDict
 
 
-class DriverConfig(TypedDict):
-    user_data_dir: NotRequired[Path]
-    browser_executable_path: NotRequired[Path]
+class MyDriverConfig(TypedDict):
+    user_data_dir: Path | None
+    browser_executable_path: Path | None
