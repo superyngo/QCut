@@ -1,22 +1,19 @@
-from app import mideo_converter
-from pathlib import Path
+from app import mideo_converter, constants
 
 
 def main() -> None:
-    target_path: Path = Path(r"F:\Users\user\Downloads")
-
     mideo_converter.MergeByDate(
-        input_folder_path=target_path,
+        input_folder_path=constants.CONFIG.TARGET_PATH.value,
         valid_extensions={mideo_converter.VideoSuffix.MP4},
         walkthrough=True,
-        delete_after=False,
+        delete_after=True,
         start_hour=6,
         timestamp_pattern=mideo_converter.RE_PATTERN.EPOCHSTAMP.value,
     ).merge()
 
     mideo_converter.BatchVideoRender(
-        input_folder_path=target_path,
-        output_folder_path=target_path / "cl",
+        input_folder_path=constants.CONFIG.TARGET_PATH.value,
+        output_folder_path=constants.CONFIG.RENDERED_FOLDER_PATH.value,
         valid_extensions={mideo_converter.VideoSuffix.MKV},
         walkthrough=False,
         delete_after=False,
@@ -24,7 +21,7 @@ def main() -> None:
             timestamp_pattern=mideo_converter.RE_PATTERN.EPOCHSTAMP.value
         ),
     ).apply(
-        task=mideo_converter.PARTIAL_TASKS.cut_motionless_rerender(threshold=0.0095),
+        task=mideo_converter.PARTIAL_TASKS.cut_silence(dB=-15),
     )
 
 

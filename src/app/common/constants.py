@@ -1,7 +1,7 @@
 import sys
 import os
 from pathlib import Path
-from enum import StrEnum, auto
+from enum import StrEnum, auto, Enum
 from app.common.mytypes import PathEnum
 
 
@@ -37,3 +37,10 @@ class ACTIONS(StrEnum):
     CONVERTER = auto()
     SPEEDUP = auto()
     UPLOADER = auto()
+
+
+class CONFIG(Enum):
+    TARGET_PATH = (_TARGET_PATH := Path(r"C:\Users\user\Downloads"))
+    RENDERED_FOLDER_PATH = _TARGET_PATH / "rendered"
+    EDGE_PATH = Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
+    BROWSER_CONFIG_PATH = APP_PATHS.APP_DATA / "config"

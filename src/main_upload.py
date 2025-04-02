@@ -1,5 +1,6 @@
 import os
-import asyncio
+from weakref import WeakKeyDictionary
+import nodriver as uc
 from pathlib import Path
 from pydantic import AnyUrl
 from app import gp_uploader, logger, constants
@@ -14,31 +15,29 @@ UploaderConfig = gp_uploader.types.UploaderConfig
 os.environ["HTTPS_PROXY"] = ""
 os.environ["HTTP_PROXY"] = ""
 
-edge_path = Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-local_dir = Path(r"F:\Users\user\Downloads")
 driver_config: MyDriverConfig = {
-    "user_data_dir": Path(constants.APP_PATHS.APP_DATA / "config"),
-    "browser_executable_path": edge_path,
+    "user_data_dir": constants.CONFIG.BROWSER_CONFIG_PATH.value,
+    "browser_executable_path": constants.CONFIG.EDGE_PATH.value,
 }
 
 uploader1 = gp_uploader.Uploader(
     **driver_config,
     task_name="Mom",
-    local_album_path=local_dir,
+    local_album_path=constants.CONFIG.TARGET_PATH.value,
     GPhoto_url=AnyUrl(
         "https://photos.google.com/share/AF1QipOjEaSgW_YJxNembwfgYQbouBBHSUyQxFGj2Oq6dpw_EjkWeCBRkSRwczoP7WwoUw"
     ),
-    delete_after=False,
+    delete_after=True,
 )
 
 uploader2 = gp_uploader.Uploader(
     **driver_config,
     task_name="Mom_speedup",
-    local_album_path=local_dir / "cl",
+    local_album_path=constants.CONFIG.RENDERED_FOLDER_PATH.value,
     GPhoto_url=AnyUrl(
         "https://photos.google.com/share/AF1QipNG24NndfSGD9rsiHkz7OBvA5amkVOxcadMFI52a0HZR3m9wlUwTgOn5b2h7YBA2Q"
     ),
-    delete_after=False,
+    delete_after=True,
 )
 
 upload_assignments: gp_uploader.types.Assignments = {
@@ -52,6 +51,10 @@ async def main():
     if not assignments:
         logger.info("No assignment")
         return
+
+    driver_instances: gp_uploader.types.BrowserInstances | WeakKeyDictionary = (
+        WeakKeyDictionary()
+    )
     logger.info(
         f"Start uploading tasks: {[assignment.task_name for assignment in upload_assignments['assignments']]}"
     )
@@ -66,17 +69,16 @@ async def main():
         else:
             logger.info(f"No mkv files in {uploader.local_album_path}, pass")
 
-        # Close tab for the last uploader
+        # Close tab at the last uploader finished
         if index == len(assignments) - 1:
             logger.info(f"All tasks finished, closing tab for {uploader.task_name}")
-            await uploader.tab.close()  # type:ignore
+            driver_instances = uploader.driver_instances
+
+        del uploader
+
+        for driver in driver_instances.values():
+            driver.stop()  # type:ignore
 
 
 if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
-    task = loop.create_task(main())
-    loop.run_until_complete(task)
-    pending = asyncio.all_tasks(loop=loop)
-    group = asyncio.gather(*pending)
-
-    loop.close()
+    uc.loop().run_until_complete(main())

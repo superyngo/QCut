@@ -9,6 +9,7 @@ from ...services import my_driver
 from ffmpeg_toolkit import types as ffmpeg_types
 
 type MyDriverConfig = my_driver.types.MyDriverConfig
+type BrowserInstances = my_driver.types.BrowserInstances
 
 
 class UploaderConfig(TypedDict):
