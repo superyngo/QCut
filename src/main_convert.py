@@ -1,4 +1,5 @@
 from app import mideo_converter, constants
+from ffmpeg_toolkit import PARTIAL_TASKS
 
 
 def main() -> None:
@@ -21,7 +22,7 @@ def main() -> None:
             timestamp_pattern=mideo_converter.RE_PATTERN.EPOCHSTAMP.value
         ),
     ).render(
-        task=mideo_converter.PARTIAL_TASKS.cut_silence(dB=-15),
+        task=PARTIAL_TASKS.cut_silence(dB=-15),
     )
 
 

@@ -2,7 +2,6 @@ import os
 from weakref import WeakKeyDictionary
 import nodriver as uc
 from pathlib import Path
-from pydantic import AnyUrl
 from app import gp_uploader, logger, constants
 
 # Fix for "RuntimeError: Event loop is closed" on Windows
@@ -24,9 +23,7 @@ uploader1 = gp_uploader.Uploader(
     **driver_config,
     task_name="Mom",
     local_album_path=constants.CONFIG.TARGET_PATH.value,
-    GPhoto_url=AnyUrl(
-        "https://photos.google.com/share/AF1QipOjEaSgW_YJxNembwfgYQbouBBHSUyQxFGj2Oq6dpw_EjkWeCBRkSRwczoP7WwoUw"
-    ),
+    GPhoto_url=constants.ALBUMS_URL.MOM.value,
     delete_after=True,
 )
 
@@ -34,9 +31,7 @@ uploader2 = gp_uploader.Uploader(
     **driver_config,
     task_name="Mom_speedup",
     local_album_path=constants.CONFIG.RENDERED_FOLDER_PATH.value,
-    GPhoto_url=AnyUrl(
-        "https://photos.google.com/share/AF1QipNG24NndfSGD9rsiHkz7OBvA5amkVOxcadMFI52a0HZR3m9wlUwTgOn5b2h7YBA2Q"
-    ),
+    GPhoto_url=constants.ALBUMS_URL.MOM_SPEEDUP.value,
     delete_after=True,
 )
 

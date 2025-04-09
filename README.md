@@ -1,5 +1,5 @@
 ```
-powershell-ExecutionPolicyByPass-c"irm https://astral.sh/uv/install.ps1 | iex"
+powershell -c "irm https://astral.sh/uv/install.ps1 | more"
 ```
 
 ## Installing Git with PowerShell

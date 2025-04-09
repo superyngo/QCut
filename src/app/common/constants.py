@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from enum import StrEnum, auto, Enum
 from app.common.mytypes import PathEnum
+from pydantic import AnyUrl
 
 
 class DEV_INFO(StrEnum):
@@ -40,7 +41,28 @@ class ACTIONS(StrEnum):
 
 
 class CONFIG(Enum):
-    TARGET_PATH = (_TARGET_PATH := Path(r"C:\Users\user\Downloads"))
+    TARGET_PATH = (_TARGET_PATH := Path(r"K:\data\94f827b4b94e"))
     RENDERED_FOLDER_PATH = _TARGET_PATH / "rendered"
     EDGE_PATH = Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-    BROWSER_CONFIG_PATH = APP_PATHS.APP_DATA / "config"
+    BROWSER_CONFIG_PATH = APP_PATHS.APP_DATA / "abc"
+
+
+class ALBUMS_URL(Enum):
+    """_summary_
+
+    Args:
+        Enum (_type_): _description_
+    """
+
+    MOM = AnyUrl(
+        "https://photos.google.com/share/AF1QipOjEaSgW_YJxNembwfgYQbouBBHSUyQxFGj2Oq6dpw_EjkWeCBRkSRwczoP7WwoUw"
+    )
+    MOM_SPEEDUP = AnyUrl(
+        "https://photos.google.com/share/AF1QipNG24NndfSGD9rsiHkz7OBvA5amkVOxcadMFI52a0HZR3m9wlUwTgOn5b2h7YBA2Q"
+    )
+    XIAOMI = AnyUrl(
+        "https://photos.google.com/share/AF1QipN5ErAyjjFPCxWgw--uYgbrvJWZu1U39-3iyeChyQQv0PDxU59NnyNP_k4bZNMrvw"
+    )
+    XIAOMI_SPEEDUP = AnyUrl(
+        "https://photos.google.com/share/AF1QipMk6l7y_pzXMh1gTWH5G2lD_U30_Br2E-p2sKDw71YBY97zMh6krVC9cDsT-acFjQ"
+    )

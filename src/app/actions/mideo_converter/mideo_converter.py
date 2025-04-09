@@ -1,17 +1,15 @@
 import os
 import re
-import ffmpeg_toolkit
+from ffmpeg_toolkit import types as ff_types
+from ffmpeg_toolkit import BatchTask, FPRenderTasks, FF_TASKS
 from datetime import datetime, timedelta, date
 from enum import Enum
 from pathlib import Path
 from pydantic import computed_field, Field
 from app.common import logger
 
-VideoSuffix = ffmpeg_toolkit.types.VideoSuffix
-FunctionEnum = ffmpeg_toolkit.types.FunctionEnum
-PARTIAL_TASKS = ffmpeg_toolkit.PARTIAL_TASKS
-
-BatchTask = ffmpeg_toolkit.BatchTask
+VideoSuffix = ff_types.VideoSuffix
+FunctionEnum = ff_types.FunctionEnum
 
 
 class RE_PATTERN(Enum):
@@ -19,7 +17,7 @@ class RE_PATTERN(Enum):
     DATETIMESTAMP = re.compile(r"(?<!\d)\d{14}(?!\d)")  # YYYYMMDDHHMMSS
 
 
-type ValidExtensions = set[ffmpeg_toolkit.types.VideoSuffix] | set[str] | None
+type ValidExtensions = set[ff_types.VideoSuffix] | set[str] | None
 
 
 def _extract_pattern(text: str, pattern: re.Pattern) -> int | None:
@@ -84,7 +82,7 @@ def _group_files_by_date(
 def _merge_videos(
     video_dict: GroupedVideos,
     save_path: Path,
-    output_kwargs: ffmpeg_toolkit.types.FFKwargs,
+    output_kwargs: ff_types.FFKwargs,
 ) -> int:
     today: date = datetime.today().date()
 
@@ -99,7 +97,7 @@ def _merge_videos(
         # Prepare the input file list with valid check for ffmpeg
         input_files: list[Path] = []
         for video_path in sorted_videos.values():
-            if ffmpeg_toolkit.FPRenderTasks().is_valid_video(video_path):
+            if FPRenderTasks().is_valid_video(video_path):
                 input_files.append(video_path)
 
         if not input_files:
@@ -114,7 +112,7 @@ def _merge_videos(
         logger.info(f"{output_file = }")
         try:
             # Use ffmpeg to concatenate videos
-            ffmpeg_toolkit.Merge(
+            FF_TASKS.Merge(
                 input_dir_or_files=input_files,
                 output_file=output_file,
                 output_kwargs=output_kwargs,

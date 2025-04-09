@@ -1,7 +1,6 @@
 from .mideo_converter import (
     BatchTask,
     MergeByDate,
-    PARTIAL_TASKS,
     PostHooks,
     RE_PATTERN,
     VideoSuffix,
@@ -10,7 +9,6 @@ from .mideo_converter import (
 __all__: list[str] = [
     "BatchTask",
     "MergeByDate",
-    "PARTIAL_TASKS",
     "PostHooks",
     "RE_PATTERN",
     "VideoSuffix",

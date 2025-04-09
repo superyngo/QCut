@@ -1,5 +1,4 @@
 version = 1
-revision = 1
 requires-python = ">=3.9"
 
 [[package]]
@@ -25,14 +24,14 @@ wheels = [
 
 [[package]]
 name = "ffmpeg-toolkit"
-version = "0.1.7"
+version = "0.1.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ff/32/d4bdcd709e4d41bb4117d1fa7050d2d245257dbef2a4ea5481610160646d/ffmpeg_toolkit-0.1.7.tar.gz", hash = "sha256:731b1416cbcbb9fb411bc3b8a5cadef62e9d2c49dc24c181f75f1a3e8ce1253a", size = 31006 }
+sdist = { url = "https://files.pythonhosted.org/packages/b5/5b/61aeacd1c300e5aff12f57947fe97cf2874ca25fec8f75e6e2b7ed9decf0/ffmpeg_toolkit-0.1.8.tar.gz", hash = "sha256:04c603c1523a15b6b1858d3ed31ac679ab85c568762bf88524d816cb6b752790", size = 31028 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/98/87/6175dcb416273e036ef025d3debbd4c5de8bef36d938920cf4b02e4b8223/ffmpeg_toolkit-0.1.7-py3-none-any.whl", hash = "sha256:0a46884277ab3f200835d632f84993e7131559c6842dbce622fbcafa6a141b45", size = 28660 },
+    { url = "https://files.pythonhosted.org/packages/fb/17/330d62ba165339ece3338ade5e25b30698bbaf44daeee37086871020ab1d/ffmpeg_toolkit-0.1.8-py3-none-any.whl", hash = "sha256:9c3f239a68d62a275ef91d5d0db359c18f75b3e62283ec715cee027038e7ac48", size = 28681 },
 ]
 
 [[package]]
@@ -194,7 +193,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "ffmpeg-toolkit", specifier = ">=0.1.7" },
+    { name = "ffmpeg-toolkit", specifier = ">=0.1.8" },
     { name = "nodriver", specifier = ">=0.39" },
     { name = "pydantic", specifier = ">=2.10.6" },
 ]
