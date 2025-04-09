@@ -83,34 +83,36 @@ def _merge_videos(
     video_dict: GroupedVideos,
     save_path: Path,
     output_kwargs: ff_types.FFKwargs,
-) -> int:
+) -> list[Path] | int:
     today: date = datetime.today().date()
 
+    merged_vidoes: list[Path] = []
     for date_key, videos in video_dict.items():
-        if date_key == today:
-            logger.info(f"Skipping today's date: {date_key}")
-            continue
-
-        # Sort the videos by epoch time
-        sorted_videos = dict(sorted(videos.items()))
-
-        # Prepare the input file list with valid check for ffmpeg
-        input_files: list[Path] = []
-        for video_path in sorted_videos.values():
-            if FPRenderTasks().is_valid_video(video_path):
-                input_files.append(video_path)
-
-        if not input_files:
-            logger.info(f"No valid videos found for {date_key}. Skipping.")
-            continue
-
-        # Get the file's timestamp to the first video's epoch time
-        first_video_epoch = next(iter(sorted_videos))
-
-        # Define the output file path
-        output_file: Path = save_path / f"{date_key}_{first_video_epoch}_merged.mkv"
-        logger.info(f"{output_file = }")
         try:
+            if date_key == today:
+                logger.info(f"Skipping today's date: {date_key}")
+                continue
+
+            # Sort the videos by epoch time
+            sorted_videos = dict(sorted(videos.items()))
+
+            # Prepare the input file list with valid check for ffmpeg
+            input_files: list[Path] = []
+            for video_path in sorted_videos.values():
+                if FPRenderTasks().is_valid_video(video_path):
+                    input_files.append(video_path)
+
+            if not input_files:
+                logger.info(f"No valid videos found for {date_key}. Skipping.")
+                continue
+
+            # Get the file's timestamp to the first video's epoch time
+            first_video_epoch = next(iter(sorted_videos))
+
+            # Define the output file path
+            output_file: Path = save_path / f"{date_key}_{first_video_epoch}_merged.mkv"
+            logger.info(f"{output_file = }")
+
             # Use ffmpeg to concatenate videos
             FF_TASKS.Merge(
                 input_dir_or_files=input_files,
@@ -123,11 +125,13 @@ def _merge_videos(
             logger.info(
                 f"Merged {date_key} video, saved to {output_file}, set timestamps to {first_video_epoch}."
             )
+            merged_vidoes += input_files
 
         except Exception as e:
             logger.error(f"Failed to concatenate videos for {date_key}. Error: {e}")
             return 1
-    return 0
+
+    return merged_vidoes
 
 
 class PostHooks(FunctionEnum):
@@ -173,7 +177,7 @@ class MergeByDate(BatchTask):
             self.start_hour,
         )
 
-    def merge(self) -> int:
+    def merge(self) -> list[Path] | int:
         """Process the video merging operation.
 
         Returns:
@@ -186,20 +190,18 @@ class MergeByDate(BatchTask):
             return 1
 
         try:
-            do: int = _merge_videos(
+            result: list[Path] | int = _merge_videos(
                 self.videos_grouped_by_date,
                 self.output_folder_path or self.input_folder_path,
                 self.output_kwargs,
             )
-
             # Clean up original video directories
-            if self.delete_after:
+            if isinstance(result, list) and self.delete_after:
                 dirs_to_delete: set[Path] = set()
-                for videos in self.videos_grouped_by_date.values():
-                    for video in videos.values():
-                        logger.info(f"Delete source video {video}.")
-                        os.remove(video)
-                        dirs_to_delete.add(video.parent)
+                logger.info(f"Delete source video {result}.")
+                for video in result:
+                    os.remove(video)
+                    dirs_to_delete.add(video.parent)
                 for directory in dirs_to_delete:
                     if list(directory.iterdir()) == []:
                         logger.info(f"Delete source videos dir {directory}.")
@@ -209,7 +211,7 @@ class MergeByDate(BatchTask):
             logger.error(f"Failed to delete files or directories with {e}")
             return 2
 
-        return do
+        return result
 
 
 def main() -> None:
