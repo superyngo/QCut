@@ -11,7 +11,7 @@ def main() -> None:
         timestamp_pattern=mideo_converter.RE_PATTERN.EPOCHSTAMP.value,
     ).merge()
 
-    mideo_converter.BatchVideoRender(
+    mideo_converter.BatchTask(
         input_folder_path=constants.CONFIG.TARGET_PATH.value,
         output_folder_path=constants.CONFIG.RENDERED_FOLDER_PATH.value,
         valid_extensions={mideo_converter.VideoSuffix.MKV},
@@ -20,7 +20,7 @@ def main() -> None:
         post_hook=mideo_converter.PostHooks.set_epoch_timestamp(
             timestamp_pattern=mideo_converter.RE_PATTERN.EPOCHSTAMP.value
         ),
-    ).apply(
+    ).render(
         task=mideo_converter.PARTIAL_TASKS.cut_silence(dB=-15),
     )
 

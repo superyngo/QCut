@@ -4,13 +4,14 @@ import ffmpeg_toolkit
 from datetime import datetime, timedelta, date
 from enum import Enum
 from pathlib import Path
-from pydantic import BaseModel, computed_field, Field
+from pydantic import computed_field, Field
 from app.common import logger
-from typing import Callable
 
 VideoSuffix = ffmpeg_toolkit.types.VideoSuffix
 FunctionEnum = ffmpeg_toolkit.types.FunctionEnum
 PARTIAL_TASKS = ffmpeg_toolkit.PARTIAL_TASKS
+
+BatchTask = ffmpeg_toolkit.BatchTask
 
 
 class RE_PATTERN(Enum):
@@ -19,35 +20,6 @@ class RE_PATTERN(Enum):
 
 
 type ValidExtensions = set[ffmpeg_toolkit.types.VideoSuffix] | set[str] | None
-
-
-def _list_video_files(
-    root_path: str | Path,
-    valid_extensions: ValidExtensions,
-    walkthrough: bool = True,
-) -> list[Path]:
-    if valid_extensions is None:
-        valid_extensions = set(VideoSuffix)
-
-    root_path = Path(root_path)
-    video_files: list[Path] = []
-
-    # Use rglob to recursively find files with the specified extensions
-    video_files = (
-        [
-            file
-            for file in root_path.rglob("*")
-            if file.is_file() and file.suffix.lstrip(".").lower() in valid_extensions
-        ]
-        if walkthrough
-        else [
-            file
-            for file in root_path.iterdir()
-            if file.is_file() and file.suffix.lstrip(".").lower() in valid_extensions
-        ]
-    )
-
-    return video_files
 
 
 def _extract_pattern(text: str, pattern: re.Pattern) -> int | None:
@@ -182,56 +154,7 @@ class PostHooks(FunctionEnum):
         return _set_epoch_timestamp
 
 
-class BatchVideoRender(BaseModel):
-    """Video merger configuration and processor.
-
-    Handles merging of video files in a folder based on their date.
-    """
-
-    input_folder_path: Path
-    output_folder_path: Path | None = None
-    valid_extensions: ValidExtensions = None
-    walkthrough: bool = False
-    input_kwargs: ffmpeg_toolkit.types.FFKwargs = Field(default_factory=dict)
-    output_kwargs: ffmpeg_toolkit.types.FFKwargs = Field(default_factory=dict)
-    delete_after: bool = False
-    post_hook: Callable | None = None
-
-    def model_post_init(self, *args, **kwargs):
-        if self.output_folder_path is None:
-            self.output_folder_path = self.input_folder_path
-        if self.output_folder_path.suffix == "" and self.output_folder_path.is_file():
-            raise ValueError("Output folder path is a file.")
-        self.output_folder_path.mkdir(parents=True, exist_ok=True)
-        if self.valid_extensions is None:
-            self.valid_extensions = set(VideoSuffix)
-
-    @computed_field
-    @property
-    def video_files(self) -> list[Path]:
-        """List all video files in the specified folder with valid extensions."""
-        files = _list_video_files(
-            self.input_folder_path,
-            valid_extensions=self.valid_extensions,
-            walkthrough=self.walkthrough,
-        )
-        logger.info(f"Found {len(files)} video files in {self.input_folder_path}")
-        return files
-
-    def apply(self, task: PARTIAL_TASKS) -> None:
-        """Batch Render the video files."""
-        for video in self.video_files:
-            output_gile = task(
-                input_file=video,
-                output_file=self.output_folder_path,
-                options={"delete_after": self.delete_after},
-            )
-            if self.post_hook:
-                logger.info("Post hooking...")
-                self.post_hook(video, output_gile)
-
-
-class MergeByDate(BatchVideoRender):
+class MergeByDate(BatchTask):
     """Video merger configuration and processor."""
 
     start_hour: int = Field(
