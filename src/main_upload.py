@@ -15,7 +15,7 @@ os.environ["HTTPS_PROXY"] = ""
 os.environ["HTTP_PROXY"] = ""
 
 driver_config: MyDriverConfig = {
-    "user_data_dir": constants.CONFIG.BROWSER_CONFIG_PATH.value,
+    "user_data_dir": constants.CONFIG.BROWSER_CONFIG_FOLDER_NAME.value,
     "browser_executable_path": constants.CONFIG.EDGE_PATH.value,
 }
 

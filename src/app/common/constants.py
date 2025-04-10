@@ -4,6 +4,10 @@ from pathlib import Path
 from enum import StrEnum, auto, Enum
 from app.common.mytypes import PathEnum
 from pydantic import AnyUrl
+from dotenv import load_dotenv
+
+# 載入 .env 檔案
+load_dotenv(Path(__file__).parent / ".env")
 
 
 class DEV_INFO(StrEnum):
@@ -41,10 +45,13 @@ class ACTIONS(StrEnum):
 
 
 class CONFIG(Enum):
-    TARGET_PATH = (_TARGET_PATH := Path(r"K:\data\94f827b4b94e"))
+    # 從 .env 載入參數
+    TARGET_PATH = (_TARGET_PATH := Path(os.getenv("TARGET_PATH", "")))
     RENDERED_FOLDER_PATH = _TARGET_PATH / "rendered"
-    EDGE_PATH = Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-    BROWSER_CONFIG_PATH = APP_PATHS.APP_DATA / "abc"
+    EDGE_PATH = Path(os.getenv("EDGE_PATH", ""))
+    BROWSER_CONFIG_FOLDER_NAME = APP_PATHS.APP_DATA / os.getenv(
+        "BROWSER_CONFIG_FOLDER_NAME"
+    )
 
 
 class ALBUMS_URL(Enum):

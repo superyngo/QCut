@@ -1,0 +1,4 @@
+# CONFIG 參數
+TARGET_PATH=K:\\data\\94f827b4b94e
+EDGE_PATH=C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe
+BROWSER_CONFIG_FOLDER_NAME=abc
