@@ -2,7 +2,10 @@
 powershell -c "irm https://astral.sh/uv/install.ps1 | more"
 ```
 
+https://git-scm.com/downloads
+
 ## Installing Git with PowerShell
+
 
 ### Using winget (Windows Package Manager)
 ```powershell
