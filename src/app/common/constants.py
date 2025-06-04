@@ -49,8 +49,8 @@ class CONFIG(Enum):
     TARGET_PATH = (_TARGET_PATH := Path(os.getenv("TARGET_PATH", "")))
     RENDERED_FOLDER_PATH = _TARGET_PATH / "rendered"
     EDGE_PATH = Path(os.getenv("EDGE_PATH", ""))
-    BROWSER_CONFIG_FOLDER_NAME = APP_PATHS.APP_DATA / os.getenv(
-        "BROWSER_CONFIG_FOLDER_NAME"
+    BROWSER_CONFIG_FOLDER_NAME = Path(
+        APP_PATHS.APP_DATA / os.getenv("BROWSER_CONFIG_FOLDER_NAME")
     )
 
 
